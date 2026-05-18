@@ -1,0 +1,32 @@
+window.GAME_DATA=window.GAME_DATA||{};
+// Loja principal: skins, armas e itens. Edite este arquivo para alterar preço, bônus, nome e ícone.
+window.GAME_DATA.shop = {
+ skins:[
+  {id:'skin_pink',name:'Rosa Clássica',desc:'A skin original',icon:'👧',price:0,bonus:{}},
+  {id:'skin_dark',name:'Sombria',desc:'+10% dano corpo a corpo',icon:'🖤',price:300,bonus:{meleeMult:1.1}},
+  {id:'skin_gold',name:'Dourada',desc:'+20% moedas coletadas',icon:'✨',price:600,bonus:{coinMult:1.2}},
+  {id:'skin_cyber',name:'Cyber',desc:'Dash recarrega 30% mais rápido',icon:'🤖',price:800,bonus:{dashCDMult:0.7}},
+  {id:'skin_ghost',name:'Fantasma',desc:'Invencibilidade ao dar dash +0.1s',icon:'👻',price:1200,bonus:{dashInvBonus:0.1}},
+  {id:'skin_strange',name:'estranha',desc:'+15% dano de fogo',icon:'😈',price:1500,bonus:{fireMult:1.15}},
+ ],
+ weapons:[
+  {id:'axe_default',name:'Machado Padrão',desc:'Fiel companheiro',icon:'🪓',price:0,bonus:{},dmg:5,fireDmg:4},
+  {id:'axe_blood',name:'Machado de Sangue',desc:'+2 dano, vidas ao acertar',icon:'🩸',price:400,bonus:{meleeDmg:2,lifeSteal:1},dmg:7,fireDmg:4},
+  {id:'staff_fire',name:'Cajado de Fogo',desc:'Fogo +3 dano, -20% mana',icon:'🔥',price:500,bonus:{fireDmg:3,manaCost:0.8},dmg:5,fireDmg:7},
+  {id:'blade_wind',name:'Lâmina do Vento',desc:'Dash em área + knockback',icon:'💨',price:700,bonus:{dashArea:1},dmg:5,fireDmg:4},
+  {id:'hammer_thunder',name:'Martelo Trovão',desc:'+5 dano, ataque mais lento',icon:'🔨',price:900,bonus:{meleeDmg:5,atkDelay:0.15},dmg:10,fireDmg:4},
+  {id:'wand_crystal',name:'Varinha Cristal',desc:'Projéteis ricocheteiam',icon:'🔮',price:1100,bonus:{ricochet:1},dmg:5,fireDmg:6},
+  {id:'scythe_spider',name:'Foice Aracnídea',desc:'Projétil de teia que prende inimigos',icon:'🕷️',price:1800,bonus:{webSlow:1},dmg:8,fireDmg:7},
+  {id:'orb_witch',name:'Orbe da Bruxa',desc:'Magia curva que atravessa monstros fracos',icon:'🧙',price:2400,bonus:{pierce:1},dmg:7,fireDmg:9},
+  {id:'lance_dragon',name:'Lança do Dragão',desc:'Rajada longa de fogo, alto custo de mana',icon:'🐉',price:3200,bonus:{manaCost:1.25,burnTrail:1},dmg:9,fireDmg:12},
+  {id:'blade_void',name:'Lâmina Alienígena',desc:'Dano alto e projétil sombrio instável',icon:'🛸',price:4200,bonus:{meleeDmg:4,voidCrit:1},dmg:12,fireDmg:10},
+ ],
+ items:[
+  {id:'item_shield',name:'Escudo Rúnico',desc:'Bloqueia 1 hit a cada 30s',icon:'🛡',price:350,bonus:{shield:30}},
+  {id:'item_boot',name:'Botas Velozes',desc:'Velocidade +15%',icon:'👟',price:400,bonus:{speedMult:1.15}},
+  {id:'item_ring',name:'Anel de Mana',desc:'Mana regenera 50% mais rápido',icon:'💍',price:500,bonus:{manaRegen:1.5}},
+  {id:'item_amulet',name:'Amuleto da Sorte',desc:'Chance dobrada de power-up',icon:'🧿',price:600,bonus:{luckMult:2}},
+  {id:'item_bomb',name:'Bomba Mágica',desc:'Habilidade Q: explosão em área',icon:'💣',price:800,bonus:{hasBomb:1}},
+  {id:'item_wings',name:'Asas de Fada',desc:'Triplo pulo desbloqueado',icon:'🦋',price:1000,bonus:{tripleJump:1}},
+ ]
+};;

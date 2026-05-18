@@ -1,0 +1,27 @@
+window.GAME_DATA=window.GAME_DATA||{};
+// Fases/cenários/ondas. Edite enemies, width, goal, coinBonus e theme sem mexer na engine.
+window.GAME_DATA.stages = [
+ // ── MUNDO 1 ──────────────────────────────────────────────
+ {id:0,icon:'🌲',theme:'forest',world:0,enemies:[['mush',380],['mush',580],['mush',820],['mush',1080],['mush',1320],['mushking',1660]],width:2100,ground:198,goal:1920,coinBonus:60},
+ {id:1,icon:'🌿',theme:'swamp',world:0,enemies:[['mush',380],['mush',640],['slug',900],['mush',1200],['slug',1480]],width:2050,ground:199,goal:1850,coinBonus:70},
+ {id:2,icon:'🎪',theme:'circus',world:0,enemies:[['clownlet',440],['clownlet',720],['mush',980],['clownlet',1260],['clown',1580]],width:2200,ground:198,goal:2010,coinBonus:80},
+ {id:3,icon:'❄',theme:'snow',world:0,enemies:[['mush',450],['mush',760],['mush',1060],['barb',1380]],width:2050,ground:200,goal:1870,coinBonus:75},
+ {id:4,icon:'🍭',theme:'candy',world:0,enemies:[['candyImp',440],['candyImp',720],['mush',1000],['candyImp',1260],['caramel',1600]],width:2240,ground:197,goal:2040,coinBonus:85},
+ {id:5,icon:'🌳',theme:'living',world:0,enemies:[['rootling',480],['rootling',780],['mush',1080],['rootling',1340],['treeking',1620]],width:2250,ground:198,goal:2060,coinBonus:90},
+ {id:6,icon:'⚡',theme:'castle',world:0,enemies:[['mush',520],['mush',820],['mush',1120],['queen',1600]],width:2300,ground:199,goal:2100,coinBonus:95},
+ {id:7,icon:'🪞',theme:'glitch',world:0,enemies:[['mirror',1550]],width:2350,ground:198,goal:2140,coinBonus:120},
+ // ── MUNDO 2 ──────────────────────────────────────────────
+ {id:8,icon:'🌋',theme:'volcano',world:1,enemies:[['pyrefiend',420],['pyrefiend',680],['lavaBrute',980],['pyrefiend',1260],['volcanic',1600]],width:2400,ground:200,goal:2200,coinBonus:130},
+ {id:9,icon:'🌊',theme:'deep',world:1,enemies:[['deepDrifter',440],['deepDrifter',700],['abyssWorm',980],['deepDrifter',1280],['krakenette',1600]],width:2350,ground:198,goal:2150,coinBonus:140},
+ {id:10,icon:'💀',theme:'crypt',world:1,enemies:[['boneling',400],['boneling',650],['ghostKnight',900],['boneling',1150],['boneling',1350],['lich',1640]],width:2400,ground:199,goal:2200,coinBonus:150},
+ {id:11,icon:'🔆',theme:'neon',world:1,enemies:[['neonDrone',450],['neonDrone',720],['glitchFiend',1000],['neonDrone',1280],['neonGod',1600]],width:2450,ground:198,goal:2240,coinBonus:160},
+ {id:12,icon:'🏜',theme:'salt',world:1,enemies:[['dustDevil',430],['dustDevil',700],['sandGolem',960],['dustDevil',1240],['saltGolem',1600]],width:2350,ground:200,goal:2140,coinBonus:145},
+ {id:13,icon:'💎',theme:'crystal',world:1,enemies:[['shardling',460],['shardling',740],['crystalBrute',1020],['shardling',1300],['crystalQueen',1640]],width:2400,ground:198,goal:2200,coinBonus:155},
+ {id:14,icon:'💨',theme:'wind',world:1,enemies:[['windWraith',450],['windWraith',730],['stormKnight',1010],['windWraith',1290],['windPhantom',1620]],width:2450,ground:198,goal:2240,coinBonus:165},
+ {id:15,icon:'🌑',theme:'dark',world:1,enemies:[['shadowFiend',480],['shadowFiend',760],['darkKnight',1040],['darkCore',1650]],width:2500,ground:199,goal:2300,coinBonus:200},
+ // ── MUNDO 3 ──────────────────────────────────────────────
+ {id:16,icon:'🌌',theme:'space',world:2,enemies:[['starSpawn',460],['starSpawn',750],['cosmicBrute',1050],['starSpawn',1350],['voidBeast',1680]],width:2600,ground:198,goal:2400,coinBonus:250},
+ {id:17,icon:'⚙',theme:'factory',world:2,enemies:[['gearling',440],['gearling',720],['steamBrute',1000],['gearling',1280],['gearling',1480],['mechaBoss',1720]],width:2600,ground:200,goal:2420,coinBonus:260},
+ {id:18,icon:'🦠',theme:'organic',world:2,enemies:[['blobTwin',460],['blobTwin',750],['muscleMass',1050],['blobTwin',1350],['organicTitan',1700]],width:2650,ground:198,goal:2440,coinBonus:280},
+ {id:19,icon:'⬛',theme:'void',world:2,enemies:[['nullFiend',480],['nullFiend',780],['nullFiend',1080],['nullFiend',1380],['nullKing',1750]],width:2700,ground:199,goal:2480,coinBonus:400},
+];;
