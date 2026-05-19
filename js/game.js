@@ -675,19 +675,25 @@ try{
 function mpSendChat(){
 try{
  if(!MP||!MP.on||!MP.roomRef){mpStatus('Entre em uma sala para usar o chat.');return false}
+ if(fbAuth&&!fbUser){fbEnsureAuth(()=>mpSendChat());mpStatus('Conectando chat...');return false}
  const inp=document.getElementById('mpChatInput')||document.querySelector('.mp-chat-input');
  if(!inp){mpStatus('Campo do chat não encontrado.');return false}
  const f=mpChatFilterText(inp.value||'');
  if(!f.ok){mpStatus(f.msg||'Mensagem inválida.');return false}
- const uid=String(AUTH_UID||MP.playerId||mpId()||'anon');
+ const uid=String(AUTH_UID||'');
+ if(!uid){mpStatus('Autenticação do chat ainda não carregou.');fbEnsureAuth(()=>{});return false}
  const nick=String(MP.nick||SOCIAL.nick||getGlobalNickValue()||mmNickStored()||'Jogador').slice(0,20);
- const msg={uid:uid,nick:nick,text:String(f.text).slice(0,120),at:firebase.database.ServerValue.TIMESTAMP};
- inp.value='';
+ const msg={uid:uid,nick:nick,text:String(f.text).slice(0,120),at:Date.now()};
  const msgRef=MP.roomRef.child('chat').push();
- msgRef.set(msg).then(()=>{mpRenderChat();}).catch(err=>{
-   try{inp.value=f.text}catch(e){}
+ const key=msgRef.key||('local_'+Date.now());
+ inp.value='';
+ MP.chat=MP.chat||{};
+ MP.chat[key]=msg;
+ mpRenderChat();
+ msgRef.set(msg).catch(err=>{
    console.warn('chat send failed',err);
-   mpStatus('Chat bloqueado pelas regras Firebase.');
+   try{delete MP.chat[key];mpRenderChat();inp.value=f.text}catch(e){}
+   mpStatus('Chat bloqueado pelas regras Firebase. Atualize as regras do chat.');
  });
  return true;
 }catch(e){console.warn('mpSendChat error',e);mpStatus('Erro ao enviar mensagem.');return false}
@@ -718,12 +724,12 @@ if(role==='host'){try{MP.roomRef.onDisconnect().remove();MP.lobbyRef.onDisconnec
 const joinIndex=Math.min(role==='host'?0:(+((lobbyInfo&&lobbyInfo.playersCount)||Object.keys(MP.players||{}).length)||0),MP_MAX_PLAYERS-1);const spawnOffsets=[{x:0,y:0},{x:70,y:0},{x:-70,y:0},{x:0,y:70}];const sp=spawnOffsets[joinIndex]||spawnOffsets[0];MP.playerRef.set({nick:MP.nick,role,authUid:AUTH_UID||'',deviceId:socialDeviceId(),skin:save.equipped.skin||'skin_pink',weapon:save.equipped.weapon||'axe_default',hp:8,x:78+sp.x,y:120+sp.y,dir:1,stage:save.selectedStage,online:true,updated:firebase.database.ServerValue.TIMESTAMP,lastSeen:firebase.database.ServerValue.TIMESTAMP});
 const metaPatch={code:room,stage:save.selectedStage,updated:firebase.database.ServerValue.TIMESTAMP,started:false,maxPlayers:MP_MAX_PLAYERS,createdClientAt:MP.roomCreatedAt};
 if(role==='host'){metaPatch.host=MP.playerId;metaPatch.creator=MP.nick||SOCIAL.nick||'Jogador';metaPatch.hostAuthUid=AUTH_UID||'';MP.roomRef.child('meta').update(metaPatch);}
-MP.roomRef.child('players').on('value',snap=>{const old=MP.players||{};MP.players=snap.val()||{};if(MP.on&&MP.role!=='host'&&MP.playerId&&!MP.players[MP.playerId]){mpHandleKickedFromRoom();return}const active=Object.values(MP.players).filter(pl=>pl&&pl.online!==false).length;if(MP.lobbyRef)MP.lobbyRef.update({playersCount:active,updatedAt:firebase.database.ServerValue.TIMESTAMP,status:MP.started?'playing':(active>=MP_MAX_PLAYERS?'full':'open'),started:!!MP.started});if(active<=0&&MP.role==='host'){MP.roomRef.remove();if(MP.lobbyRef)MP.lobbyRef.remove();return}for(const [id,pl] of Object.entries(MP.players)){if(id!==MP.playerId&&!MP.knownPlayers[id]){const nm=mpCleanNick(pl.nick||'');MP.joinToast='~'+nm+' entrou na sala';MP.joinToastT=3.2;mpStatus(MP.joinToast)}}MP.knownPlayers=Object.assign({},MP.players);mpHostProcessPlayerActions();mpLobbyText();socialRenderRooms();});
+MP.roomRef.child('players').on('value',snap=>{const old=MP.players||{};MP.players=snap.val()||{};if(MP.on&&MP.role!=='host'&&MP.playerId&&!MP.players[MP.playerId]){mpHandleKickedFromRoom();return}const active=Object.values(MP.players).filter(pl=>pl&&pl.online!==false).length;if(MP.lobbyRef)MP.lobbyRef.update({playersCount:active,updatedAt:firebase.database.ServerValue.TIMESTAMP,status:MP.started?'playing':(active>=MP_MAX_PLAYERS?'full':'open'),started:!!MP.started});if(active<=0&&MP.role==='host'){MP.roomRef.remove();if(MP.lobbyRef)MP.lobbyRef.remove();return}for(const [id,pl] of Object.entries(MP.players)){if(id!==MP.playerId&&!MP.knownPlayers[id]){const nm=mpCleanNick(pl.nick||'');MP.joinToast='~'+nm+' entrou na sala';MP.joinToastT=3.2;mpStatus(MP.joinToast)}}MP.knownPlayers=Object.assign({},MP.players);mpLobbyText();socialRenderRooms();});
 MP.roomRef.child('meta').on('value',snap=>{const m=snap.val()||{};const st=m.stage;MP.started=!!m.started;if(!MP.on||MP.role==='host')return;if(m.started&&typeof st==='number'){const restart=+m.restartToken||0;if(started&&typeof li==='number'&&li!==st)mpFinalizeClientStageOnce('advance_'+li+'_'+restart);if(!started||li!==st||restart!==MP.lastRestart){MP.lastRestart=restart;startGame(st)}}});
 MP.roomRef.child('enemies').on('value',snap=>{MP.enemyStates=snap.val()||{};if(MP.on&&MP.role!=='host')mpApplyEnemyStates(0)});
 MP.roomRef.child('shots').on('value',snap=>{MP.shotStates=snap.val()||{};if(MP.on&&MP.role!=='host')mpApplyShotStates(0)});
 MP.roomRef.child('hazards').on('value',snap=>{MP.hazardStates=snap.val()||{};if(MP.on&&MP.role!=='host')mpApplyHazardStates(0)});
-MP.roomRef.child('events').limitToLast(60).on('child_added',snap=>{const ev=snap.val();if(!ev||ev.stage!==li)return;mpVisualRemoteEvent(ev);if(role==='host'&&ev.from!==MP.playerId)mpApplyRemoteEvent(ev,snap.key)});mpSetupChat();
+MP.roomRef.child('events').limitToLast(60).on('child_added',snap=>{const ev=snap.val();if(!ev)return;if(!ev.kind&&ev.type)ev.kind=ev.type;if(ev.stage!==li)return;mpVisualRemoteEvent(ev);if(role==='host'&&ev.from!==MP.playerId)mpApplyRemoteEvent(ev,snap.key)});mpSetupChat();
 MP.playerRef.child('inbox').limitToLast(20).on('child_added',snap=>{const ev=snap.val();if(ev)mpApplyPlayerInbox(ev,snap.key)});
 document.getElementById('mpCodeBox').style.display='none';
 try{showScreen('multiplayer',true)}catch(e){}
@@ -944,16 +950,23 @@ hazards=hazards.filter(h=>!mpIsSyncedHazard(h)).concat(synced);
 
 function mpSendEvent(kind,data={}){
 if(!MP.on||!MP.roomRef||!started)return;
-const ev=Object.assign({kind,from:MP.playerId,authUid:AUTH_UID||'',stage:li,x:Math.round(p.x),y:Math.round(p.y),dir:p.dir,t:Date.now(),seq:++MP.eventSeq},data);
-try{
-  if(MP.role==='client'&&MP.playerRef){
-    MP.playerRef.update({action:ev,actionSeq:ev.seq,actionAt:Date.now(),updated:Date.now()});
-  }else{
-    MP.roomRef.child('events').push(ev);
-  }
-}catch(e){
-  try{MP.roomRef.child('events').push(ev)}catch(_e){}
-}
+if(fbAuth&&!fbUser){fbEnsureAuth(()=>{});return;}
+const uid=String(AUTH_UID||'');
+const ev=Object.assign({
+ kind,
+ type:kind,
+ from:MP.playerId,
+ uid:uid,
+ authUid:uid,
+ stage:li,
+ x:Math.round(p.x),
+ y:Math.round(p.y),
+ dir:p.dir,
+ t:Date.now(),
+ at:Date.now(),
+ seq:++MP.eventSeq
+},data);
+MP.roomRef.child('events').push(ev).catch(e=>{console.warn('mp event send failed',e);});
 }
 function mpVisualRemoteEvent(ev){
 if(!MP.on||!started||!ev||ev.from===MP.playerId||ev.stage!==li)return;
@@ -1044,24 +1057,8 @@ mpHurtRemotePlayer(id,damage||e.damage||1,k||((e.dir||1)*150));
 }
 }
 }
-
-function mpHostProcessPlayerActions(){
-try{
- if(!MP.on||MP.role!=='host'||!started||!MP.players)return;
- if(!MP.lastActionSeq)MP.lastActionSeq={};
- for(const [id,pl] of Object.entries(MP.players||{})){
-  if(id===MP.playerId||!pl||!pl.action)continue;
-  const seq=+pl.actionSeq||+pl.action.seq||0;
-  if(!seq||MP.lastActionSeq[id]===seq)continue;
-  MP.lastActionSeq[id]=seq;
-  const ev=Object.assign({},pl.action,{from:id,stage:+pl.action.stage||li});
-  if(ev.stage!==li)continue;
-  mpVisualRemoteEvent(ev);
-  mpApplyRemoteEvent(ev,null);
- }
-}catch(e){try{console.warn('mpHostProcessPlayerActions error',e)}catch(_e){}}
-}
 function mpApplyRemoteEvent(ev,key){
+if(!ev.kind&&ev.type)ev.kind=ev.type;
 if(!MP.on||MP.role!=='host'||!started||ev.stage!==li)return;
 if(ev.kind==='attack'){
 const box={x:ev.dir>0?ev.x+18:ev.x-58,y:ev.y+4,w:68,h:42};
@@ -2645,70 +2642,11 @@ if(el) el.textContent=total;
 }
 setInterval(updateOnlineCounter,4000);
 setTimeout(updateOnlineCounter,1500);
-
-/* PATCH chat real: envio local imediato + Firebase com timestamp numérico */
-function mmSendRoomChatNow(){
- try{
-  const inp=document.getElementById('mpChatInput')||document.querySelector('.mp-chat-input');
-  if(!inp){mpStatus('Campo do chat não encontrado.');return false;}
-  if(!MP||!MP.on||!MP.roomRef){mpStatus('Entre em uma sala para usar o chat.');return false;}
-  const f=mpChatFilterText(inp.value||'');
-  if(!f.ok){mpStatus(f.msg||'Mensagem inválida.');return false;}
-  const msg={uid:String(AUTH_UID||MP.playerId||mpId()||'anon'),nick:String(MP.nick||SOCIAL.nick||getGlobalNickValue()||mmNickStored()||'Jogador').slice(0,20),text:String(f.text).slice(0,120),at:Date.now()};
-  inp.value='';
-  if(!MP.chat)MP.chat={};
-  const localKey='local_'+msg.at+'_'+Math.floor(Math.random()*9999);
-  MP.chat[localKey]=msg;
-  mpRenderChat();
-  MP.roomRef.child('chat').push(msg).then(()=>{
-    try{delete MP.chat[localKey];mpRenderChat()}catch(e){}
-  }).catch(err=>{
-    console.warn('chat send failed',err);
-    mpStatus('Chat bloqueado pelas regras Firebase.');
-  });
-  return false;
- }catch(e){console.warn('mmSendRoomChatNow error',e);mpStatus('Erro ao enviar mensagem.');return false;}
-}
-function mmBindChatHard(){
- try{
-  const btn=document.getElementById('btnMpChatSend');
-  const inp=document.getElementById('mpChatInput');
-  if(btn&&!btn.dataset.mmHardChat){btn.dataset.mmHardChat='1';btn.addEventListener('click',ev=>{ev.preventDefault();ev.stopPropagation();mmSendRoomChatNow();},true)}
-  if(inp&&!inp.dataset.mmHardChat){inp.dataset.mmHardChat='1';inp.addEventListener('keydown',ev=>{if(ev.key==='Enter'){ev.preventDefault();ev.stopPropagation();mmSendRoomChatNow();}},true)}
- }catch(e){}
-}
-document.addEventListener('click',ev=>{try{if(ev.target&&(ev.target.id==='btnMpChatSend'||(ev.target.closest&&ev.target.closest('#btnMpChatSend')))){ev.preventDefault();ev.stopPropagation();mmSendRoomChatNow();}}catch(e){}},true);
-document.addEventListener('DOMContentLoaded',mmBindChatHard);
-window.addEventListener('load',mmBindChatHard);
-setInterval(mmBindChatHard,1200);
-
 })();
 
 
 ;try{window.__MM_TOUCABR_PASSIVE_WATERMARK__="@toucabr|mundo-magico|pwa|lobby-duo|2026";}catch(e){}
 
 
-/* PATCH CHAT SEND BINDING - garante envio mesmo se o botão for recriado ou movido */
-(function(){
- function bindChatSendOnce(){
-  try{
-   var btn=document.getElementById('btnMpChatSend');
-   if(btn && !btn.dataset.chatBound){
-    btn.dataset.chatBound='1';
-    btn.addEventListener('click',function(ev){ev.preventDefault();ev.stopPropagation();mpSendChat();});
-   }
-   var inp=document.getElementById('mpChatInput');
-   if(inp && !inp.dataset.chatBound){
-    inp.dataset.chatBound='1';
-    inp.addEventListener('keydown',function(ev){if(ev.key==='Enter'){ev.preventDefault();mpSendChat();}});
-   }
-  }catch(e){}
- }
- document.addEventListener('click',function(ev){
-  try{if(ev.target && (ev.target.id==='btnMpChatSend' || ev.target.closest && ev.target.closest('#btnMpChatSend'))){ev.preventDefault();ev.stopPropagation();mpSendChat();}}catch(e){}
- },true);
- document.addEventListener('DOMContentLoaded',bindChatSendOnce);
- window.addEventListener('load',bindChatSendOnce);
- setTimeout(bindChatSendOnce,500);
- setTimeout(bindChatSendOnce,1500);
-})();
+
+/* REAL_FIX_CHAT_AND_GUEST_DAMAGE_2026_05_19 */
