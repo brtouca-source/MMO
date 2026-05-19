@@ -621,10 +621,10 @@ try{
 function mpHandleKickedFromRoom(){
 try{
  if(!MP||!MP.on)return;
- if(MP.roomRef){MP.roomRef.child('players').off();MP.roomRef.child('meta').off();MP.roomRef.child('enemies').off();MP.roomRef.child('shots').off();MP.roomRef.child('hazards').off();MP.roomRef.child('events').off();MP.roomRef.child('chat').off()}
+ if(MP.roomRef){MP.roomRef.child('players').off();MP.roomRef.child('meta').off();MP.roomRef.child('enemies').off();MP.roomRef.child('shots').off();MP.roomRef.child('hazards').off();MP.roomRef.child('events').off()}
 }catch(e){}
-MP.on=false;MP.started=false;MP.roomCreatedAt=0;MP.room='';MP.players={};MP.enemyStates={};MP.shotStates={};MP.hazardStates={};MP.worldReady=false;MP.restarting=false;MP.knownPlayers={};MP.remoteSmooth={};MP.remoteFx=[];MP.chat={};MP.chatRef=null;MP.playerRef=null;MP.roomRef=null;MP.lobbyRef=null;
-try{document.getElementById('mpChatBox')?.classList.remove('open');document.getElementById('btnHomeChat')?.classList.remove('open','has-msg');document.getElementById('mpCodeBox').style.display='none'}catch(e){}
+MP.on=false;MP.started=false;MP.roomCreatedAt=0;MP.room='';MP.players={};MP.enemyStates={};MP.shotStates={};MP.hazardStates={};MP.worldReady=false;MP.restarting=false;MP.knownPlayers={};MP.remoteSmooth={};MP.remoteFx=[];MP.playerRef=null;MP.roomRef=null;MP.lobbyRef=null;
+try{document.getElementById('mpCodeBox').style.display='none'}catch(e){}
 mpStatus('Você foi removido da sala.');mpLobbyText();mpUpdateStartButton();socialRenderRooms();renderHomeSquadLobby();
 }
 function startHomeCharacterPreview(){
@@ -652,52 +652,11 @@ el.innerHTML=`<div class="mp-lobby-head">Sala ${count}/${MP_MAX_PLAYERS} ${ttl}<
 mpUpdateStartButton();renderHomeSquadLobby();
 }
 
-function mpRenderChat(){const box=document.getElementById('mpChatMessages');const arr=Object.values(MP.chat||{}).sort((a,b)=>(+a.at||0)-(+b.at||0)).slice(-16);const badge=document.getElementById('btnHomeChat');if(badge){badge.classList.toggle('has-msg',arr.length>0);badge.title=arr.length?('Chat da sala: '+arr.length+' mensagens'):'Chat da sala'}if(!box)return;box.innerHTML=arr.length?arr.map(m=>`<div class="mp-chat-msg"><b>${mpCleanNick(m.nick||'Jogador')}:</b> ${mpCleanNick(m.text||'')}</div>`).join(''):'<div class="mp-chat-empty">Chat da sala vazio.</div>';box.scrollTop=box.scrollHeight}
-function mpSetupChat(){try{if(!MP.roomRef)return;MP.chat={};if(MP.chatRef)try{MP.chatRef.off()}catch(e){}MP.chatRef=MP.roomRef.child('chat');MP.chatRef.limitToLast(16).on('value',snap=>{MP.chat=snap.val()||{};mpRenderChat()});mpRenderChat()}catch(e){}}
-function mpPublishEquipped(){try{if(MP&&MP.on&&MP.playerRef){MP.playerRef.update({skin:(save.equipped&&save.equipped.skin)||'skin_pink',weapon:(save.equipped&&save.equipped.weapon)||'axe_default',updated:firebase.database.ServerValue.TIMESTAMP});renderHomeSquadLobby();}}catch(e){}}
-
-function mpToggleHomeChat(){
-try{
- const box=document.getElementById('mpChatBox');
- const btn=document.getElementById('btnHomeChat');
- if(!box)return;
- const active=!box.classList.contains('open');
- box.classList.toggle('open',active);
- if(btn)btn.classList.toggle('open',active);
- if(active){
-   if(!MP.on)mpStatus('Crie ou entre em uma sala para usar o chat.');
-   const inp=document.getElementById('mpChatInput');
-   setTimeout(()=>{try{inp&&inp.focus()}catch(e){}},80);
- }
-}catch(e){}
-}
-
-function mpSendChat(){
-try{
- if(!MP||!MP.on||!MP.roomRef){mpStatus('Entre em uma sala para usar o chat.');return false}
- if(fbAuth&&!fbUser){fbEnsureAuth(()=>mpSendChat());mpStatus('Conectando chat...');return false}
- const inp=document.getElementById('mpChatInput')||document.querySelector('.mp-chat-input');
- if(!inp){mpStatus('Campo do chat não encontrado.');return false}
- const f=mpChatFilterText(inp.value||'');
- if(!f.ok){mpStatus(f.msg||'Mensagem inválida.');return false}
- const uid=String(AUTH_UID||'');
- if(!uid){mpStatus('Autenticação do chat ainda não carregou.');fbEnsureAuth(()=>{});return false}
- const nick=String(MP.nick||SOCIAL.nick||getGlobalNickValue()||mmNickStored()||'Jogador').slice(0,20);
- const msg={uid:uid,nick:nick,text:String(f.text).slice(0,120),at:Date.now()};
- const msgRef=MP.roomRef.child('chat').push();
- const key=msgRef.key||('local_'+Date.now());
- inp.value='';
- MP.chat=MP.chat||{};
- MP.chat[key]=msg;
- mpRenderChat();
- msgRef.set(msg).catch(err=>{
-   console.warn('chat send failed',err);
-   try{delete MP.chat[key];mpRenderChat();inp.value=f.text}catch(e){}
-   mpStatus('Chat bloqueado pelas regras Firebase. Atualize as regras do chat.');
- });
- return true;
-}catch(e){console.warn('mpSendChat error',e);mpStatus('Erro ao enviar mensagem.');return false}
-}
+function mpRenderChat(){}
+function mpSetupChat(){}
+function mpToggleHomeChat(){}
+function mpChatFilterText(t){return {text:String(t||''),ok:true,msg:''}}
+function mpSendChat(){return false}
 function mpUpdateStartButton(){const b=document.getElementById('btnMpStart');if(!b)return;if(!MP.on){b.style.display='none';return}b.style.display='block';if(MP.role==='host'){b.disabled=false;b.textContent='▶ INICIAR PARTIDA'}else{b.disabled=true;b.textContent='AGUARDANDO CRIADOR'}}
 function mpToast(s,life=2.8,col='#60d0ff'){texts.push({x:cam.x+W/2,y:58,s,life,max:life,col,big:1});mpStatus(s)}
 function mpPassKey(v){return String(v||'').trim().slice(0,18)}
@@ -737,7 +696,7 @@ mpStatus(role==='host'?('Sala criada. A partida expira se não iniciar em 5 minu
 }
 function mpCreateRoom(){requireNickThen(()=>{if(MP.on){mpStatus('Você já está em uma sala. Saia dela antes de criar outra.');return}const name=mpRoomNameClean(document.getElementById('mpRoomName')?.value||'');if(!name){mpStatus('Use outro nome de sala.');return}const pass=mpPassKey(document.getElementById('mpRoomPass')?.value||''),created=Date.now();mpCleanupOwnOpenRooms(()=>{const room=mpCode();const lobby={roomId:room,name,hostUid:mpId(),deviceId:socialDeviceId(),hostNick:SOCIAL.nick,isPrivate:!!pass,password:pass,playersCount:1,maxPlayers:MP_MAX_PLAYERS,status:'open',started:false,createdClientAt:created,createdAt:firebase.database.ServerValue.TIMESTAMP,updatedAt:firebase.database.ServerValue.TIMESTAMP};mpLobbyRef(room).set(lobby).then(()=>mpConnectRoom(room,'host',lobby)).catch(()=>mpStatus('Não foi possível criar a sala. Verifique as regras Firebase.'))})})}
 function mpJoinRoom(forcedRoom,forcePassword){validateAndClaimNick(ok=>{if(!ok)return;const room=(forcedRoom||(document.getElementById('mpRoomInput').value||'')).trim().toUpperCase();if(room.length<4){mpStatus('Digite o código da sala ou escolha uma sala na lista.');return}mpLobbyRef(room).once('value').then(snap=>{const r=snap.val();if(!r){mpStatus('Sala não encontrada ou já fechada.');return}if((+r.playersCount||0)>=(+r.maxPlayers||MP_MAX_PLAYERS)){mpStatus('Sala cheia.');return}if(!r.started&&Date.now()-(+r.createdClientAt||+r.createdAt||Date.now())>300000){mpStatus('Sala expirada. Atualize a lista.');try{mpLobbyRef(room).remove();fbDb.ref('rooms/'+room).remove()}catch(e){}return}let pass='';if(r.isPrivate){pass=prompt('Senha da sala:')||'';if(mpPassKey(pass)!==mpPassKey(r.password||'')){mpStatus('Senha incorreta.');return}}mpConnectRoom(room,'client',r)}).catch(()=>mpStatus('Erro ao entrar na sala.'))})}
-function mpLeaveRoom(){try{if(MP.playerRef)MP.playerRef.remove();if(MP.roomRef){MP.roomRef.child('players').off();MP.roomRef.child('meta').off();MP.roomRef.child('enemies').off();MP.roomRef.child('shots').off();MP.roomRef.child('hazards').off();MP.roomRef.child('events').off();MP.roomRef.child('chat').off();if(MP.role==='host'){MP.roomRef.remove();if(MP.lobbyRef)MP.lobbyRef.remove()}else if(MP.lobbyRef){MP.lobbyRef.update({playersCount:1,status:'open',updatedAt:firebase.database.ServerValue.TIMESTAMP})}}}catch(e){}MP.on=false;MP.started=false;MP.roomCreatedAt=0;MP.room='';MP.players={};MP.enemyStates={};MP.shotStates={};MP.hazardStates={};MP.worldReady=false;MP.restarting=false;MP.knownPlayers={};MP.remoteSmooth={};MP.remoteFx=[];MP.chat={};MP.chatRef=null;MP.playerRef=null;MP.roomRef=null;MP.lobbyRef=null;try{document.getElementById('mpChatBox')?.classList.remove('open');document.getElementById('btnHomeChat')?.classList.remove('open','has-msg')}catch(e){}document.getElementById('mpCodeBox').style.display='none';mpStatus('Saiu da sala.');mpLobbyText();mpUpdateStartButton();socialRenderRooms();}
+function mpLeaveRoom(){try{if(MP.playerRef)MP.playerRef.remove();if(MP.roomRef){MP.roomRef.child('players').off();MP.roomRef.child('meta').off();MP.roomRef.child('enemies').off();MP.roomRef.child('shots').off();MP.roomRef.child('hazards').off();MP.roomRef.child('events').off();if(MP.role==='host'){MP.roomRef.remove();if(MP.lobbyRef)MP.lobbyRef.remove()}else if(MP.lobbyRef){MP.lobbyRef.update({playersCount:1,status:'open',updatedAt:firebase.database.ServerValue.TIMESTAMP})}}}catch(e){}MP.on=false;MP.started=false;MP.roomCreatedAt=0;MP.room='';MP.players={};MP.enemyStates={};MP.shotStates={};MP.hazardStates={};MP.worldReady=false;MP.restarting=false;MP.knownPlayers={};MP.remoteSmooth={};MP.remoteFx=[];MP.playerRef=null;MP.roomRef=null;MP.lobbyRef=null;document.getElementById('mpCodeBox').style.display='none';mpStatus('Saiu da sala.');mpLobbyText();mpUpdateStartButton();socialRenderRooms();}
 
 const SOCIAL={uid:'',nick:'',base:null,online:{},rooms:{},ranking:{},tab:'play',ready:false,nickOk:false,nickMsg:''};
 function socialWeekId(){const d=new Date(),onejan=new Date(d.getFullYear(),0,1),week=Math.ceil((((d-onejan)/86400000)+onejan.getDay()+1)/7);return d.getFullYear()+'-W'+String(week).padStart(2,'0')}
@@ -1194,9 +1153,6 @@ document.getElementById('btnCreateRoom').addEventListener('click',()=>mpCreateRo
 document.getElementById('btnJoinRoom').addEventListener('click',()=>mpJoinRoom());
 document.getElementById('btnMpLeave').addEventListener('click',()=>mpLeaveRoom());
 document.getElementById('btnMpStart').addEventListener('click',()=>mpStartGame());
-document.getElementById('btnMpChatSend')?.addEventListener('click',()=>mpSendChat());
-document.getElementById('btnHomeChat')?.addEventListener('click',()=>mpToggleHomeChat());
-document.getElementById('mpChatInput')?.addEventListener('keydown',e=>{if(e.key==='Enter')mpSendChat()});
 {const bl=document.getElementById('btnLang'); if(bl) bl.addEventListener('click',()=>setLang(LANG==='pt'?'en':'pt'));}
 document.getElementById('btnMapBack').addEventListener('click',()=>showScreen('menu'));
 document.getElementById('btnShopBack').addEventListener('click',()=>showScreen('menu'));
