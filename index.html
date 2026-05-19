@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no,viewport-fit=cover"/>
 <title>MUNDO MÁGICO</title>
 <link rel="stylesheet" href="css/style.css?v=1.0.1-mobile-home">
-<link rel="manifest" href="manifest.json?v=1.0.0-final">
+<link rel="manifest" href="manifest.json?v=1.0.1-sec">
 <meta name="theme-color" content="#ff3a9d">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -79,6 +79,7 @@
       <div class="hm-char-shadow"></div>
       <div id="homeNickAbove" class="home-nick-above">Jogador</div>
       <canvas id="homePlayerCanvas" class="home-player-canvas" width="560" height="420" aria-hidden="true"></canvas>
+      <div id="homeSquadLobby" class="home-squad-lobby" aria-hidden="true"></div>
       <div class="hm-char-wrap" aria-hidden="true">
         <div class="hm-char-body">
           <div class="hm-char-head">
@@ -102,7 +103,14 @@
       <div class="hm-skin-badge" id="hmSkinBadge">✨ Rosa Clássica</div>
     </div>
 
-    <button class="btn hm-play-btn" id="btnPlay">▶ JOGAR</button>
+    <div class="hm-play-row"><button class="btn hm-play-btn" id="btnPlay">▶ JOGAR</button><button class="btn hm-chat-btn" id="btnHomeChat" type="button" title="Chat da sala">📩</button></div>
+  <div id="mpChatBox" class="mp-chat-box">
+    <div id="mpChatMessages" class="mp-chat-messages">Chat da sala vazio.</div>
+    <div class="mp-chat-row">
+      <input id="mpChatInput" class="mp-chat-input" maxlength="90" placeholder="Mensagem da sala...">
+      <button id="btnMpChatSend" class="mp-chat-send" type="button">ENVIAR</button>
+    </div>
+  </div>
 
     <div class="hm-notice" id="homeTestNotice">✨ Em testes · já jogável e divertido</div>
   </div>
@@ -111,7 +119,7 @@
   <div class="hm-right">
     <div class="hm-nick-mini">
       <div class="hm-nick-mini-title">NICK</div>
-      <input id="globalNickInput" maxlength="14" placeholder="User12345">
+      <input id="globalNickInput" maxlength="14" placeholder="Digite seu nick">
       <div id="globalNickStatus" class="hm-nick-mini-status"></div>
     </div>
     <button class="btn hm-side-btn hm-btn-shop" id="btnShop">🛒<br><span>LOJA</span></button>
@@ -131,7 +139,7 @@
 <div id="multiplayerScreen" class="screen hidden">
  <div class="panel mp-create-panel">
   <div class="panel-title" style="color:#60d0ff">👥 CRIAR SALA</div>
-  <p class="desc" style="text-align:center">Crie uma sala pública ou com senha. Máximo: 2 jogadores.</p>
+  <p class="desc" style="text-align:center">Crie uma sala pública ou com senha. Máximo: 4 jogadores. Solo não precisa de nick; multiplayer precisa.</p>
   <input class="mp-input" id="mpNick" maxlength="14" style="display:none" aria-hidden="true"/>
   <input class="mp-input" id="mpRoomName" maxlength="22" placeholder="NOME DA SALA"/>
   <input class="mp-input" id="mpRoomPass" maxlength="18" placeholder="SENHA OPCIONAL (vazio = pública)"/>
@@ -246,20 +254,20 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 
-<script src="data/shop.js?v=1.0.0-final"></script>
-<script src="data/weapons.js?v=1.0.0-final"></script>
-<script src="data/skins.js?v=1.0.0-final"></script>
-<script src="data/enemies.js?v=1.0.0-final"></script>
-<script src="data/bosses.js?v=1.0.0-final"></script>
-<script src="data/stages.js?v=1.0.0-final"></script>
-<script src="data/dimensions.js?v=1.0.0-final"></script>
-<script src="js/game.js?v=1.0.0-final"></script>
+<script src="data/shop.js?v=1.0.1-sec"></script>
+<script src="data/weapons.js?v=1.0.1-sec"></script>
+<script src="data/skins.js?v=1.0.1-sec"></script>
+<script src="data/enemies.js?v=1.0.1-sec"></script>
+<script src="data/bosses.js?v=1.0.1-sec"></script>
+<script src="data/stages.js?v=1.0.1-sec"></script>
+<script src="data/dimensions.js?v=1.0.1-sec"></script>
+<script src="js/game.js?v=1.0.1-sec"></script>
 
 <script>
 (function(){
  if('serviceWorker' in navigator && location.protocol !== 'file:'){
   window.addEventListener('load',function(){
-   navigator.serviceWorker.register('./sw.js?v=1.0.0-final').catch(function(){});
+   navigator.serviceWorker.register('./sw.js?v=1.0.1-sec').catch(function(){});
   });
  }
 })();

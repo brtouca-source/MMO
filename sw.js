@@ -1,5 +1,5 @@
 const TOUCABR_SW_MARK="MUNDO_MAGICO_PWA__@toucabr__2026";
-const CACHE_NAME='mundo-magico-final-v1';
+const CACHE_NAME='mundo-magico-sec-v2';
 const APP_SHELL=[
  './', './index.html', './manifest.json',
  './css/style.css', './data/shop.js', './data/weapons.js', './data/skins.js',
