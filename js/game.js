@@ -674,18 +674,28 @@ try{
 
 function mpSendChat(){
 try{
- if(!MP||!MP.on||!MP.roomRef){mpStatus('Entre em uma sala para usar o chat.');return false}
  const inp=document.getElementById('mpChatInput')||document.querySelector('.mp-chat-input');
  if(!inp){mpStatus('Campo do chat não encontrado.');return false}
  const f=mpChatFilterText(inp.value||'');
  if(!f.ok){mpStatus(f.msg||'Mensagem inválida.');return false}
- const uid=String(AUTH_UID||MP.playerId||mpId()||'anon');
+ if(!MP||!MP.on){mpStatus('Entre em uma sala para usar o chat.');return false}
+ const roomCode=String(MP.room||'').trim();
+ const roomRef=(MP.roomRef)||((typeof fbDb!=='undefined'&&fbDb&&roomCode)?fbDb.ref('rooms/'+roomCode):null);
+ if(!roomRef){mpStatus('Sala do chat não encontrada.');return false}
+ const uid=String((typeof AUTH_UID!=='undefined'&&AUTH_UID)||MP.playerId||mpId()||'anon');
  const nick=String(MP.nick||SOCIAL.nick||getGlobalNickValue()||mmNickStored()||'Jogador').slice(0,20);
- const msg={uid:uid,nick:nick,text:String(f.text).slice(0,120),at:firebase.database.ServerValue.TIMESTAMP};
+ const now=Date.now();
+ const localId='local_'+now+'_'+Math.random().toString(36).slice(2,7);
+ const msg={uid:uid,nick:nick,text:String(f.text).slice(0,120),at:now};
  inp.value='';
- const msgRef=MP.roomRef.child('chat').push();
- msgRef.set(msg).then(()=>{mpRenderChat();}).catch(err=>{
-   try{inp.value=f.text}catch(e){}
+ MP.chat=MP.chat||{};
+ MP.chat[localId]=msg;
+ mpRenderChat();
+ try{document.getElementById('mpChatBox')?.classList.add('open');document.getElementById('btnHomeChat')?.classList.add('open');}catch(e){}
+ const msgRef=roomRef.child('chat').push();
+ msgRef.set(msg).then(()=>{
+   try{delete MP.chat[localId];mpRenderChat();}catch(e){}
+ }).catch(err=>{
    console.warn('chat send failed',err);
    mpStatus('Chat bloqueado pelas regras Firebase.');
  });
