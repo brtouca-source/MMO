@@ -452,14 +452,41 @@ function mmOnAuthChanged(u){
 }
 function mmSignInGoogle(){
  try{
-  if(!fbAuth||!firebase.auth||!firebase.auth.GoogleAuthProvider){alert('Login Google indisponível.');return}
+  if(window.mmGoogleLoginBusy)return;
+  window.mmGoogleLoginBusy=true;
+  setTimeout(()=>{window.mmGoogleLoginBusy=false},8000);
+
+  if(!fbAuth||!firebase.auth||!firebase.auth.GoogleAuthProvider){
+    window.mmGoogleLoginBusy=false;
+    alert('Login Google indisponível.');
+    return;
+  }
+
   const provider=new firebase.auth.GoogleAuthProvider();
   provider.setCustomParameters({prompt:'select_account'});
-  fbAuth.signInWithPopup(provider).then(()=>{mmRenderAuthBox();mmLoadCloudSave(true)}).catch(err=>{
+
+  fbAuth.signInWithPopup(provider)
+  .then(()=>{
+    window.mmGoogleLoginBusy=false;
+    mmRenderAuthBox();
+    mmLoadCloudSave(true);
+  })
+  .catch(err=>{
     console.warn('Google popup failed, using redirect',err);
-    try{fbAuth.signInWithRedirect(provider)}catch(e){alert('Não foi possível abrir o login Google agora.')}
+
+    try{
+      window.mmGoogleLoginBusy=false;
+      fbAuth.signInWithRedirect(provider);
+    }catch(e){
+      window.mmGoogleLoginBusy=false;
+      alert('Não foi possível abrir o login Google agora.');
+    }
   });
- }catch(e){alert('Não foi possível abrir o login Google agora.')}
+
+ }catch(e){
+   window.mmGoogleLoginBusy=false;
+   alert('Não foi possível abrir o login Google agora.');
+ }
 }
 function mmSignOutGoogle(){
  try{if(MP&&MP.on)mpLeaveRoom()}catch(e){}
