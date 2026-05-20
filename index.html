@@ -103,7 +103,15 @@
       <div class="hm-skin-badge" id="hmSkinBadge">✨ Rosa Clássica</div>
     </div>
 
-    <div class="hm-play-row"><button class="btn hm-play-btn" id="btnPlay">▶ JOGAR</button></div>
+    <div class="hm-play-row"><button class="btn hm-play-btn" id="btnPlay">▶ JOGAR</button><button class="btn hm-chat-btn" id="btnHomeChat" type="button" title="Chat da sala">📩</button></div>
+  <div id="mpChatBox" class="mp-chat-box">
+    <div id="mpChatMessages" class="mp-chat-messages">Chat da sala vazio.</div>
+    <div class="mp-chat-row">
+      <input id="mpChatInput" class="mp-chat-input" maxlength="90" placeholder="Mensagem da sala...">
+      <button id="btnMpChatSend" class="mp-chat-send" type="button">ENVIAR</button>
+    </div>
+  </div>
+
     <div class="hm-notice" id="homeTestNotice">✨ Em testes · já jogável e divertido</div>
   </div>
 
@@ -119,6 +127,7 @@
     <button class="btn hm-side-btn hm-btn-online" id="btnMultiplayer">👥<br><span>CRIAR SALA</span></button>
     <div class="hm-rooms-panel">
       <div class="hm-rooms-title">SALAS</div>
+      <div id="mpOnlineLimitBox" class="social-sub mp-online-limit" style="text-align:center;padding:8px 6px;margin:6px 0 8px;border-radius:10px;background:rgba(0,0,0,.22);font-weight:900">Jogadores online: 0/70</div>
       <button class="hm-rooms-refresh" id="btnRefreshRooms">ATUALIZAR SALAS</button>
       <input id="roomSearchInput" maxlength="24" placeholder="Pesquisar sala...">
       <div id="roomsListBox" class="hm-rooms-list">Carregando salas...</div>
@@ -253,7 +262,7 @@
 <script src="data/bosses.js?v=1.0.0-final"></script>
 <script src="data/stages.js?v=1.0.0-final"></script>
 <script src="data/dimensions.js?v=1.0.0-final"></script>
-<script src="js/game.js?v=sem-chat-20260519"></script>
+<script src="js/game.js?v=1.0.0-final"></script>
 
 <script>
 (function(){
