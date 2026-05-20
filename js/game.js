@@ -470,29 +470,42 @@ function mmRequireGoogleForMultiplayer(){
  try{showScreen('menu',true)}catch(e){}
  mmRenderAuthBox(true);
  mpStatus('Faça login com Google para jogar multiplayer e salvar seu progresso online.');
- try{alert('Faça login com Google para jogar multiplayer. O modo solo continua liberado como visitante.')}catch(e){}
  return false;
 }
 function mmEnsureAuthBox(){
  let box=document.getElementById('mmAuthBox');
  if(box)return box;
- const target=document.querySelector('.hm-right')||document.getElementById('menuScreen')||document.body;
- box=document.createElement('div');box.id='mmAuthBox';box.className='mm-auth-box';
- box.style.cssText='margin:8px 0;padding:9px;border-radius:12px;background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.12);font-size:11px;text-align:center;color:#fff;box-shadow:0 6px 20px rgba(0,0,0,.18)';
- target.insertBefore(box,target.firstChild);
+ box=document.createElement('div');box.id='mmAuthBox';box.className='mm-auth-box-inline';
+ box.innerHTML='<button id="mmAuthCloseBtn" class="mm-auth-close" type="button" aria-label="Fechar">×</button><div class="mm-auth-title">🔐 Multiplayer</div><div class="mm-auth-sub">Entre com Google para criar sala.</div><button id="mmGoogleLoginBtn" class="mm-auth-btn" type="button">Entrar com Google</button>';
+ document.body.appendChild(box);
+ const close=document.getElementById('mmAuthCloseBtn');
+ if(close)close.onclick=function(ev){ev.preventDefault();ev.stopPropagation();box.classList.remove('open')};
  return box;
+}
+function mmPositionAuthBox(){
+ try{
+  const box=document.getElementById('mmAuthBox')||mmEnsureAuthBox();
+  const btn=document.getElementById('btnMultiplayer')||document.getElementById('btnCreateRoom');
+  if(!box||!btn)return;
+  const r=btn.getBoundingClientRect();
+  const bw=box.offsetWidth||150,bh=box.offsetHeight||74,gap=10;
+  let left=r.left-bw-gap;
+  let top=r.top+(r.height-bh)/2;
+  if(left<6){left=r.left;top=Math.max(6,r.top-bh-gap)}
+  if(top<6)top=6;
+  if(top+bh>window.innerHeight-6)top=window.innerHeight-bh-6;
+  box.style.left=Math.round(left)+'px';
+  box.style.top=Math.round(top)+'px';
+ }catch(e){}
 }
 function mmRenderAuthBox(focus=false){
  try{
   const box=mmEnsureAuthBox();
   const logged=mmIsGoogleLoggedIn();
-  const nick=mmNickStored()||getGlobalNickValue()||'Jogador';
-  box.innerHTML='<div style="font-weight:900;margin-bottom:5px">'+(logged?'✅ Conta conectada':'🔐 Conta do jogo')+'</div>'+
-   '<div style="opacity:.82;margin-bottom:7px">'+(logged?'Progresso online ativo. Multiplayer liberado.':'Visitante: solo liberado. Multiplayer exige Google.')+'</div>'+
-   '<button id="mmGoogleLoginBtn" type="button" style="width:100%;border:0;border-radius:10px;padding:8px;font-weight:900;background:'+(logged?'#252b3a':'#fff')+';color:'+(logged?'#fff':'#222')+'">'+(logged?'Sair da conta Google':'Entrar com Google')+'</button>';
   const btn=document.getElementById('mmGoogleLoginBtn');
-  if(btn)btn.onclick=logged?mmSignOutGoogle:mmSignInGoogle;
-  if(focus){box.scrollIntoView({block:'center',behavior:'smooth'});box.style.outline='2px solid rgba(255,224,96,.85)';setTimeout(()=>{box.style.outline=''},1800)}
+  if(btn){btn.textContent=logged?'Conta conectada':'Entrar com Google';btn.onclick=logged?function(ev){ev.preventDefault();ev.stopPropagation();box.classList.remove('open')}:function(ev){ev.preventDefault();ev.stopPropagation();mmSignInGoogle()};}
+  if(logged){box.classList.remove('open');return}
+  if(focus){mmPositionAuthBox();box.classList.add('open');setTimeout(mmPositionAuthBox,30)}
  }catch(e){}
 }
 
@@ -839,7 +852,7 @@ MP.roomRef.child('meta').on('value',snap=>{const m=snap.val()||{};const st=m.sta
 MP.roomRef.child('enemies').on('value',snap=>{MP.enemyStates=snap.val()||{};if(MP.on&&MP.role!=='host')mpApplyEnemyStates(0)});
 MP.roomRef.child('shots').on('value',snap=>{MP.shotStates=snap.val()||{};if(MP.on&&MP.role!=='host')mpApplyShotStates(0)});
 MP.roomRef.child('hazards').on('value',snap=>{MP.hazardStates=snap.val()||{};if(MP.on&&MP.role!=='host')mpApplyHazardStates(0)});
-MP.roomRef.child('events').limitToLast(30).on('child_added',snap=>{const ev=snap.val();if(!ev||ev.stage!==li)return;mpVisualRemoteEvent(ev);if(role==='host'&&ev.from!==MP.playerId)mpApplyRemoteEvent(ev,snap.key)});mpSetupChat();
+MP.roomRef.child('events').limitToLast(30).on('child_added',snap=>{const ev=snap.val();if(!ev||ev.stage!==li)return;mpVisualRemoteEvent(ev);if(role==='host'&&ev.from!==MP.playerId)mpApplyRemoteEvent(ev,snap.key)});
 MP.playerRef.child('inbox').limitToLast(20).on('child_added',snap=>{const ev=snap.val();if(ev)mpApplyPlayerInbox(ev,snap.key)});
 document.getElementById('mpCodeBox').style.display='none';
 try{showScreen('multiplayer',true)}catch(e){}
@@ -1346,9 +1359,6 @@ document.getElementById('btnCreateRoom').addEventListener('click',()=>mpCreateRo
 document.getElementById('btnJoinRoom').addEventListener('click',()=>mpJoinRoom());
 document.getElementById('btnMpLeave').addEventListener('click',()=>mpLeaveRoom());
 document.getElementById('btnMpStart').addEventListener('click',()=>mpStartGame());
-document.getElementById('btnMpChatSend')?.addEventListener('click',()=>mpSendChat());
-document.getElementById('btnHomeChat')?.addEventListener('click',()=>mpToggleHomeChat());
-document.getElementById('mpChatInput')?.addEventListener('keydown',e=>{if(e.key==='Enter')mpSendChat()});
 {const bl=document.getElementById('btnLang'); if(bl) bl.addEventListener('click',()=>setLang(LANG==='pt'?'en':'pt'));}
 document.getElementById('btnMapBack').addEventListener('click',()=>showScreen('menu'));
 document.getElementById('btnShopBack').addEventListener('click',()=>showScreen('menu'));
@@ -2777,27 +2787,4 @@ requestAnimationFrame(loop);
 
 /* presença/contador online são controlados dentro de socialInit e pelos listeners reais do multiplayer. */
 
-/* PATCH CHAT SEND BINDING - garante envio mesmo se o botão for recriado ou movido */
-(function(){
- function bindChatSendOnce(){
-  try{
-   var btn=document.getElementById('btnMpChatSend');
-   if(btn && !btn.dataset.chatBound){
-    btn.dataset.chatBound='1';
-    btn.addEventListener('click',function(ev){ev.preventDefault();ev.stopPropagation();mpSendChat();});
-   }
-   var inp=document.getElementById('mpChatInput');
-   if(inp && !inp.dataset.chatBound){
-    inp.dataset.chatBound='1';
-    inp.addEventListener('keydown',function(ev){if(ev.key==='Enter'){ev.preventDefault();mpSendChat();}});
-   }
-  }catch(e){}
- }
- document.addEventListener('click',function(ev){
-  try{if(ev.target && (ev.target.id==='btnMpChatSend' || ev.target.closest && ev.target.closest('#btnMpChatSend'))){ev.preventDefault();ev.stopPropagation();mpSendChat();}}catch(e){}
- },true);
- document.addEventListener('DOMContentLoaded',bindChatSendOnce);
- window.addEventListener('load',bindChatSendOnce);
- setTimeout(bindChatSendOnce,500);
- setTimeout(bindChatSendOnce,1500);
-})();
+try{window.addEventListener('resize',function(){try{if(document.getElementById('mmAuthBox')?.classList.contains('open'))mmPositionAuthBox()}catch(e){}},{passive:true});window.addEventListener('orientationchange',function(){setTimeout(function(){try{if(document.getElementById('mmAuthBox')?.classList.contains('open'))mmPositionAuthBox()}catch(e){}},220)},{passive:true});}catch(e){}

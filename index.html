@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no,viewport-fit=cover"/>
 <title>MUNDO MÁGICO</title>
 <link rel="stylesheet" href="css/style.css?v=1.0.1-mobile-home">
 <link rel="manifest" href="manifest.json?v=1.0.0-final">
@@ -21,53 +21,16 @@
 <meta name="copyright" content="Mundo Mágico - @toucabr">
 <meta name="application-name" content="Mundo Mágico @toucabr">
 
-<style id="mobileViewportLock">
-/* Bloqueia zoom, scroll/bounce e redimensionamento fantasma no mobile/TWA sem alterar gameplay. */
-html,
-body {
-  margin: 0;
-  padding: 0;
-  width: 100%;
-  height: 100%;
-  min-width: 100%;
-  min-height: 100%;
-  overflow: hidden !important;
-  overscroll-behavior: none !important;
-  touch-action: none;
-  position: fixed;
-  inset: 0;
-  -webkit-text-size-adjust: 100%;
-  text-size-adjust: 100%;
-  -webkit-user-select: none;
-  user-select: none;
-  -webkit-tap-highlight-color: transparent;
-}
-body {
-  height: 100dvh;
-  max-height: 100dvh;
-}
-canvas,
-#game {
-  touch-action: none;
-  -webkit-user-select: none;
-  user-select: none;
-}
-button,
-.btn,
-input,
-textarea,
-select,
-[role="button"] {
-  touch-action: manipulation;
-}
-input,
-textarea {
-  -webkit-user-select: text;
-  user-select: text;
-}
-.screen {
-  overscroll-behavior: none;
-}
+<style id="mm-mobile-lock-css">
+html,body{width:100%;height:100%;margin:0;padding:0;overflow:hidden;overscroll-behavior:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:manipulation;}
+body{position:fixed;inset:0;min-width:100%;min-height:100%;}
+#game,canvas{touch-action:none;-webkit-user-select:none;user-select:none;}
+.screen,.panel,button,input{touch-action:manipulation;}
+.mm-auth-box-inline{position:fixed;z-index:9999;min-width:148px;max-width:170px;padding:8px 10px 9px;border-radius:14px;background:rgba(28,18,32,.84);border:2px solid rgba(255,255,255,.20);box-shadow:0 10px 28px rgba(0,0,0,.32), inset 0 0 0 1px rgba(255,255,255,.07);color:#fff;text-align:center;font-size:10px;line-height:1.15;opacity:0;transform:translateX(12px) scale(.96);pointer-events:none;transition:opacity .22s ease, transform .26s cubic-bezier(.2,1.15,.25,1);backdrop-filter:blur(4px);}
+.mm-auth-box-inline.open{opacity:1;transform:translateX(0) scale(1);pointer-events:auto;}
+.mm-auth-title{font-weight:950;margin:0 18px 4px 0;text-shadow:0 2px 0 rgba(0,0,0,.35)}
+.mm-auth-sub{opacity:.85;margin-bottom:6px;font-weight:800}.mm-auth-btn{width:100%;border:0;border-radius:10px;padding:8px 7px;font-weight:950;background:#fff;color:#222;box-shadow:0 4px 0 rgba(0,0,0,.32);font-size:11px}.mm-auth-close{position:absolute;right:5px;top:5px;width:20px;height:20px;border:0;border-radius:999px;background:rgba(0,0,0,.32);color:#fff;font-weight:950;line-height:20px;padding:0}
+@media (max-width:780px){.mm-auth-box-inline{min-width:132px;max-width:150px;font-size:9px;padding:7px 8px}.mm-auth-btn{font-size:10px;padding:7px 5px}}
 </style>
 
 </head>
@@ -153,14 +116,7 @@ textarea {
       <div class="hm-skin-badge" id="hmSkinBadge">✨ Rosa Clássica</div>
     </div>
 
-    <div class="hm-play-row"><button class="btn hm-play-btn" id="btnPlay">▶ JOGAR</button><button class="btn hm-chat-btn" id="btnHomeChat" type="button" title="Chat da sala">📩</button></div>
-  <div id="mpChatBox" class="mp-chat-box">
-    <div id="mpChatMessages" class="mp-chat-messages">Chat da sala vazio.</div>
-    <div class="mp-chat-row">
-      <input id="mpChatInput" class="mp-chat-input" maxlength="90" placeholder="Mensagem da sala...">
-      <button id="btnMpChatSend" class="mp-chat-send" type="button">ENVIAR</button>
-    </div>
-  </div>
+    <div class="hm-play-row"><button class="btn hm-play-btn" id="btnPlay">▶ JOGAR</button></div>
 
     <div class="hm-notice" id="homeTestNotice">✨ Em testes · já jogável e divertido</div>
   </div>
@@ -301,35 +257,6 @@ textarea {
   </div>
  </div>
 </div>
-
-<script id="mobileViewportGuard">
-(function(){
-  'use strict';
-  // Evita zoom por gesto, double-tap zoom e bounce/scroll da página no Android/iOS/TWA.
-  var lastTouchEnd = 0;
-  function isEditable(el){
-    return !!(el && el.closest && el.closest('input, textarea, select, [contenteditable="true"]'));
-  }
-  document.addEventListener('gesturestart', function(e){ e.preventDefault(); }, { passive:false });
-  document.addEventListener('gesturechange', function(e){ e.preventDefault(); }, { passive:false });
-  document.addEventListener('gestureend', function(e){ e.preventDefault(); }, { passive:false });
-  document.addEventListener('touchmove', function(e){
-    if(!isEditable(e.target)) e.preventDefault();
-  }, { passive:false });
-  document.addEventListener('touchend', function(e){
-    var now = Date.now();
-    if(now - lastTouchEnd <= 350 && !isEditable(e.target)) e.preventDefault();
-    lastTouchEnd = now;
-  }, { passive:false });
-  window.addEventListener('resize', function(){
-    try { window.scrollTo(0, 0); } catch(e) {}
-  }, { passive:true });
-  window.addEventListener('orientationchange', function(){
-    setTimeout(function(){ try { window.scrollTo(0, 0); } catch(e) {} }, 80);
-  }, { passive:true });
-})();
-</script>
-
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -401,6 +328,11 @@ textarea {
   setTimeout(updateHomeSkinBadge, 800);
   setTimeout(updateHomeSkinBadge, 2000);
 })();
+</script>
+
+
+<script id="mm-mobile-touch-guard">
+(function(){var lastTouchEnd=0;document.addEventListener('touchend',function(e){var now=Date.now();if(now-lastTouchEnd<=300){e.preventDefault();}lastTouchEnd=now;},{passive:false});document.addEventListener('gesturestart',function(e){e.preventDefault();},{passive:false});})();
 </script>
 
 </body>
