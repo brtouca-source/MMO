@@ -1,1 +1,14 @@
-
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.toucabr.mundomagico",
+      "sha256_cert_fingerprints": [
+        "46:12:CD:88:80:87:73:7E:5D:7F:27:C4:A6:1F:A3:D3:DC:16:B6:7E:18:CE:B8:D7:C9:87:8B:48:2B:80:CA:40"
+      ]
+    }
+  }
+]
