@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no,viewport-fit=cover"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
 <title>MUNDO MÁGICO</title>
 <link rel="stylesheet" href="css/style.css?v=1.0.1-mobile-home">
 <link rel="manifest" href="manifest.json?v=1.0.0-final">
@@ -20,6 +20,56 @@
 <meta name="author" content="@toucabr">
 <meta name="copyright" content="Mundo Mágico - @toucabr">
 <meta name="application-name" content="Mundo Mágico @toucabr">
+
+<style id="mobileViewportLock">
+/* Bloqueia zoom, scroll/bounce e redimensionamento fantasma no mobile/TWA sem alterar gameplay. */
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  min-width: 100%;
+  min-height: 100%;
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+  touch-action: none;
+  position: fixed;
+  inset: 0;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+body {
+  height: 100dvh;
+  max-height: 100dvh;
+}
+canvas,
+#game {
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+button,
+.btn,
+input,
+textarea,
+select,
+[role="button"] {
+  touch-action: manipulation;
+}
+input,
+textarea {
+  -webkit-user-select: text;
+  user-select: text;
+}
+.screen {
+  overscroll-behavior: none;
+}
+</style>
+
 </head>
 <div style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden" aria-hidden="true">MM_PRIVATE_MARK__TOUCABR__MUNDO_MAGICO__2026</div>
 <body>
@@ -251,6 +301,35 @@
   </div>
  </div>
 </div>
+
+<script id="mobileViewportGuard">
+(function(){
+  'use strict';
+  // Evita zoom por gesto, double-tap zoom e bounce/scroll da página no Android/iOS/TWA.
+  var lastTouchEnd = 0;
+  function isEditable(el){
+    return !!(el && el.closest && el.closest('input, textarea, select, [contenteditable="true"]'));
+  }
+  document.addEventListener('gesturestart', function(e){ e.preventDefault(); }, { passive:false });
+  document.addEventListener('gesturechange', function(e){ e.preventDefault(); }, { passive:false });
+  document.addEventListener('gestureend', function(e){ e.preventDefault(); }, { passive:false });
+  document.addEventListener('touchmove', function(e){
+    if(!isEditable(e.target)) e.preventDefault();
+  }, { passive:false });
+  document.addEventListener('touchend', function(e){
+    var now = Date.now();
+    if(now - lastTouchEnd <= 350 && !isEditable(e.target)) e.preventDefault();
+    lastTouchEnd = now;
+  }, { passive:false });
+  window.addEventListener('resize', function(){
+    try { window.scrollTo(0, 0); } catch(e) {}
+  }, { passive:true });
+  window.addEventListener('orientationchange', function(){
+    setTimeout(function(){ try { window.scrollTo(0, 0); } catch(e) {} }, 80);
+  }, { passive:true });
+})();
+</script>
+
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
