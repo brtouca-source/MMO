@@ -34,6 +34,7 @@ body{position:fixed;inset:0;min-width:100%;min-height:100%;}
 
 .hm-btn-download{background:linear-gradient(180deg,#ffe86a,#ffb800)!important;color:#111!important;text-shadow:none!important;border-color:rgba(80,45,0,.35)!important;box-shadow:0 5px 0 rgba(82,48,0,.45),0 10px 24px rgba(255,190,0,.22)!important;}
 .hm-btn-download span{color:#111!important;text-shadow:none!important;font-weight:950!important;}
+.hm-btn-download{text-decoration:none!important;display:flex!important;align-items:center!important;justify-content:center!important;flex-direction:column!important;}
 .hm-btn-download:active{transform:translateY(2px) scale(.99);}
 </style>
 
@@ -82,7 +83,7 @@ body{position:fixed;inset:0;min-width:100%;min-height:100%;}
   <!-- LEFT PANEL -->
   <div class="hm-left">
     <div class="hm-side-nav hm-side-nav-compact">
-      <button class="btn hm-side-btn hm-btn-download" id="btnDownloadGame">⬇️<br><span>BAIXAR JOGO</span></button>
+      <a class="btn hm-side-btn hm-btn-download" id="btnDownloadGameDirect" href="https://github.com/mmotoucabr-byte/dowload/releases/download/MundoMagico/MundoMagico_v0.1_Android.apk" target="_blank" rel="noopener noreferrer" download="MundoMagico_v0.1_Android.apk" aria-label="Baixar APK oficial seguro do Mundo Mágico">⬇️<br><span>BAIXAR JOGO</span></a>
       <button class="btn hm-side-btn hm-btn-missions" id="btnMissions">📋<br><span>MISSÕES</span></button>
       <button class="btn hm-side-btn hm-btn-inv" id="btnInv">🎒<br><span>MOCHILA</span></button>
       <button class="btn hm-side-btn hm-btn-settings" id="btnSettings">⚙<br><span>OPÇÕES</span></button>
