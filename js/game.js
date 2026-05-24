@@ -368,17 +368,19 @@ try{if(typeof mmRenderAuthBox==='function')mmRenderAuthBox()}catch(e){}
 function mmHadGoogleLogin(){try{return localStorage.getItem('mm_google_login')==='1'}catch(e){return false}}
 function fbScheduleAnonymousFallback(){
  try{
-  const delay=mmHadGoogleLogin()?2800:650;
+  const delay=mmHadGoogleLogin()?6500:650;
   setTimeout(()=>{
    try{
     if(fbUser)return;
-    if(mmHadGoogleLogin()&&!fbAuthInitialized){setTimeout(()=>{try{if(!fbUser&&fbAuthInitialized)fbStartAnonymous()}catch(e){}},1800);return}
-    if(!fbUser&&(!mmHadGoogleLogin()||fbAuthInitialized))fbStartAnonymous();
+    // Se já houve login Google neste aparelho, não força anônimo cedo.
+    // Isso evita atropelar a restauração da sessão Google no TWA/app.
+    if(mmHadGoogleLogin())return;
+    fbStartAnonymous();
    }catch(e){}
   },delay);
  }catch(e){}
 }
-function mmAuthRestorePending(){try{return !!(fbAuth&&mmHadGoogleLogin()&&!fbAuthInitialized&&!fbUser)}catch(e){return false}}
+function mmAuthRestorePending(){try{return !!(fbAuth&&mmHadGoogleLogin()&&!fbAuthInitialized&&!fbUser&&(Date.now()-fbAuthBootAt<5000))}catch(e){return false}}
 
 function fbStartAnonymous(){
 try{
@@ -412,8 +414,8 @@ function fbEnsureAuth(cb){
 if(!fbAuth){cb&&cb(null);return}
 if(fbUser){cb&&cb(fbUser);return}
 if(mmAuthRestorePending()){setTimeout(()=>fbEnsureAuth(cb),160);return}
-fbStartAnonymous();
-setTimeout(()=>fbEnsureAuth(cb),160);
+if(!mmHadGoogleLogin())fbStartAnonymous();
+setTimeout(()=>{cb&&cb(fbUser||null)},180);
 }
 
 var mmCloudSaveTimer=0,mmCloudSaveLoading=false,mmCloudSaveReady=false,mmCloudSaveLoadedFor='',mmCloudSavePending=false;
@@ -512,13 +514,10 @@ function mmSignOutGoogle(){
 }
 function mmRequireGoogleForMultiplayer(){
  if(mmIsGoogleLoggedIn())return true;
- if(mmAuthRestorePending()){
-  mpStatus('Carregando sua conta Google... tente novamente em alguns segundos.');
-  setTimeout(()=>{try{if(!mmIsGoogleLoggedIn())mmRenderAuthBox(true)}catch(e){}},1400);
-  return false;
- }
- mmRenderAuthBox(true);
- mpStatus('Faça login com Google para jogar multiplayer e salvar seu progresso online.');
+ // Mesmo durante restauração, o botão nunca deve ficar morto: mostra o login imediatamente.
+ if(mmAuthRestorePending())mpStatus('Verificando sua conta Google...');
+ else mpStatus('Faça login com Google para jogar multiplayer e salvar seu progresso online.');
+ try{mmRenderAuthBox(true)}catch(e){}
  return false;
 }
 function mmEnsureAuthBox(){
