@@ -1801,8 +1801,7 @@ if(type==='void_matron')Object.assign(e,{y:gyx-105,w:74,h:105,hp:145,maxHp:145,b
 return e;
 }
 
-function startGame(stageIdx){
-try{playGameplayMusic();stopLobbyMusic();}catch(e){}applySecretTesterUnlock();setTimeout(updateGameplayMenu,60);
+function startGame(stageIdx){applySecretTesterUnlock();setTimeout(updateGameplayMenu,60);
 if(stageAdvanceTimer){clearTimeout(stageAdvanceTimer);stageAdvanceTimer=null}
 audio();startMusic();
 stageObj=STAGE_DATA[stageIdx];
@@ -2816,76 +2815,3 @@ requestAnimationFrame(loop);
 /* presença/contador online são controlados dentro de socialInit e pelos listeners reais do multiplayer. */
 
 try{window.addEventListener('resize',function(){try{if(document.getElementById('mmAuthBox')?.classList.contains('open'))mmPositionAuthBox()}catch(e){}},{passive:true});window.addEventListener('orientationchange',function(){setTimeout(function(){try{if(document.getElementById('mmAuthBox')?.classList.contains('open'))mmPositionAuthBox()}catch(e){}},220)},{passive:true});}catch(e){}
-
-
-
-// ===== AUDIO SYSTEM PATCH =====
-const lobbyMusic = new Audio('musica.mp3');
-lobbyMusic.loop = true;
-lobbyMusic.volume = 1.0;
-
-const gameplayMusic = new Audio('background.mp3');
-gameplayMusic.loop = true;
-gameplayMusic.volume = 0.4;
-
-function playLobbyMusic() {
-  try {
-    gameplayMusic.pause();
-    if (lobbyMusic.paused) {
-      lobbyMusic.play().catch(()=>{});
-    }
-  } catch(e){}
-}
-
-function stopLobbyMusic() {
-  try { lobbyMusic.pause(); } catch(e){}
-}
-
-function playGameplayMusic() {
-  try {
-    lobbyMusic.pause();
-    if (gameplayMusic.paused) {
-      gameplayMusic.play().catch(()=>{});
-    }
-  } catch(e){}
-}
-
-function stopGameplayMusic() {
-  try { gameplayMusic.pause(); } catch(e){}
-}
-
-window.addEventListener('click', () => {
-  playLobbyMusic();
-}, { once:true });
-
-// ===== LOBBY BACKGROUND =====
-(function(){
-  const style = document.createElement('style');
-  style.innerHTML = `
-  body::before{
-    content:'';
-    position:fixed;
-    inset:0;
-    background:url('fundo.png') center center / cover no-repeat;
-    z-index:-2;
-    filter:brightness(0.9) saturate(1.05);
-  }
-  body::after{
-    content:'';
-    position:fixed;
-    inset:0;
-    pointer-events:none;
-    background:
-      radial-gradient(circle at 20% 30%, rgba(255,255,255,0.12) 0 2px, transparent 3px),
-      radial-gradient(circle at 70% 40%, rgba(255,255,255,0.10) 0 2px, transparent 3px),
-      radial-gradient(circle at 40% 80%, rgba(255,255,255,0.08) 0 2px, transparent 3px);
-    animation: floatParticles 8s linear infinite;
-    z-index:-1;
-  }
-  @keyframes floatParticles{
-    from{ transform:translateY(0px); }
-    to{ transform:translateY(-20px); }
-  }`;
-  document.head.appendChild(style);
-})();
-
