@@ -356,13 +356,30 @@ if(gameExitBtn)gameExitBtn.onclick=e=>{e.preventDefault();e.stopPropagation();ha
 if(defeatRestartBtn)defeatRestartBtn.onclick=e=>{e.preventDefault();e.stopPropagation();if(typeof MP!=='undefined'&&MP&&MP.on){say(LANG==='pt'?'Aguarde o outro jogador terminar a fase ou perder.':'Wait for the other player to clear the stage or lose.',1.4,'#60d0ff');return}if(started)startGame(li)};
 
 const firebaseConfig={apiKey:"AIzaSyBZvxl3BKYS4WIA0Ov1xQ7xLwLRrJm7SwU",authDomain:"mundo-magico-online.firebaseapp.com",databaseURL:"https://mundo-magico-online-default-rtdb.firebaseio.com",projectId:"mundo-magico-online",storageBucket:"mundo-magico-online.firebasestorage.app",messagingSenderId:"495535078197",appId:"1:495535078197:web:6f86b82c22f3492e802a7c"};
-let fbApp=null,fbDb=null,fbAuth=null,fbUser=null,fbAuthStarting=false;
+let fbApp=null,fbDb=null,fbAuth=null,fbUser=null,fbAuthStarting=false,fbAuthInitialized=false;
 let AUTH_UID=null;
 function fbHandleAuthUser(u){
+fbAuthInitialized=true;
 fbUser=u||null;AUTH_UID=u&&u.uid?u.uid:null;
 try{if(typeof mmOnAuthChanged==='function')mmOnAuthChanged(u||null)}catch(e){}
 try{if(typeof mmRenderAuthBox==='function')mmRenderAuthBox()}catch(e){}
 }
+
+function mmHadGoogleLogin(){try{return localStorage.getItem('mm_google_login')==='1'}catch(e){return false}}
+function fbScheduleAnonymousFallback(){
+ try{
+  const delay=mmHadGoogleLogin()?2800:650;
+  setTimeout(()=>{
+   try{
+    if(fbUser)return;
+    if(mmHadGoogleLogin()&&!fbAuthInitialized){setTimeout(()=>{try{if(!fbUser&&fbAuthInitialized)fbStartAnonymous()}catch(e){}},1800);return}
+    if(!fbUser&&(!mmHadGoogleLogin()||fbAuthInitialized))fbStartAnonymous();
+   }catch(e){}
+  },delay);
+ }catch(e){}
+}
+function mmAuthRestorePending(){try{return !!(fbAuth&&mmHadGoogleLogin()&&!fbAuthInitialized&&!fbUser)}catch(e){return false}}
+
 function fbStartAnonymous(){
 try{
  if(!fbAuth||fbUser||fbAuthStarting)return;
@@ -377,7 +394,7 @@ fbDb=firebase.database();
 if(firebase.auth){
 fbAuth=firebase.auth();
 fbAuth.onAuthStateChanged(fbHandleAuthUser);
-setTimeout(()=>{if(!fbUser)fbStartAnonymous()},450);
+fbScheduleAnonymousFallback();
 }
 }
 }catch(e){
@@ -387,7 +404,7 @@ fbDb=firebase.database();
 if(firebase.auth){
 fbAuth=firebase.auth();
 fbAuth.onAuthStateChanged(fbHandleAuthUser);
-setTimeout(()=>{if(!fbUser)fbStartAnonymous()},450);
+fbScheduleAnonymousFallback();
 }
 }catch(_){}
 }
@@ -494,6 +511,11 @@ function mmSignOutGoogle(){
 }
 function mmRequireGoogleForMultiplayer(){
  if(mmIsGoogleLoggedIn())return true;
+ if(mmAuthRestorePending()){
+  mpStatus('Carregando sua conta Google... tente novamente em alguns segundos.');
+  setTimeout(()=>{try{mmRenderAuthBox(false)}catch(e){}},700);
+  return false;
+ }
  try{showScreen('menu',true)}catch(e){}
  mmRenderAuthBox(true);
  mpStatus('Faça login com Google para jogar multiplayer e salvar seu progresso online.');
@@ -1362,6 +1384,10 @@ document.getElementById('btnPlay').addEventListener('click',()=>{
   startGame(save.selectedStage);
 });
 document.getElementById('btnMap').addEventListener('click',()=>{buildMap();showScreen('map')});
+document.getElementById('btnDownloadGame')?.addEventListener('click',()=>{
+ const ok=confirm('APK oficial do Mundo Mágico por ToucaBR. Arquivo seguro hospedado no GitHub. Deseja baixar agora?');
+ if(ok){window.location.href='https://github.com/mmotoucabr-byte/dowload/releases/download/MundoMagico/MundoMagico_v0.1_Android.apk'}
+});
 document.getElementById('btnShop').addEventListener('click',()=>{buildShop('skins');showScreen('shop')});
 document.getElementById('btnMissions').addEventListener('click',()=>{buildMissions('daily');showScreen('missions')});
 document.getElementById('btnInv').addEventListener('click',()=>{buildInv();showScreen('inv')});
