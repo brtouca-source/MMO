@@ -358,6 +358,11 @@ if(defeatRestartBtn)defeatRestartBtn.onclick=e=>{e.preventDefault();e.stopPropag
 const firebaseConfig={apiKey:"AIzaSyBZvxl3BKYS4WIA0Ov1xQ7xLwLRrJm7SwU",authDomain:"mundo-magico-online.firebaseapp.com",databaseURL:"https://mundo-magico-online-default-rtdb.firebaseio.com",projectId:"mundo-magico-online",storageBucket:"mundo-magico-online.firebasestorage.app",messagingSenderId:"495535078197",appId:"1:495535078197:web:6f86b82c22f3492e802a7c"};
 let fbApp=null,fbDb=null,fbAuth=null,fbUser=null,fbAuthStarting=false,fbAuthInitialized=false,fbAuthBootAt=Date.now();
 let AUTH_UID=null;
+try{
+  window.mmGoogleLoginBusy=false;
+  window.addEventListener('focus',()=>{window.mmGoogleLoginBusy=false},{passive:true});
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)window.mmGoogleLoginBusy=false},{passive:true});
+}catch(e){}
 function fbHandleAuthUser(u){
 fbAuthInitialized=true;
 fbUser=u||null;AUTH_UID=u&&u.uid?u.uid:null;
@@ -385,6 +390,9 @@ function mmAuthRestorePending(){try{return !!(fbAuth&&mmHadGoogleLogin()&&!fbAut
 function fbStartAnonymous(){
 try{
  if(!fbAuth||fbUser||fbAuthStarting)return;
+ // Se este aparelho já teve login Google, não cria sessão anônima automática.
+ // Isso evita trocar a conta Google restaurável por visitante ao reabrir o app/TWA.
+ if(mmHadGoogleLogin())return;
  fbAuthStarting=true;
  fbAuth.signInAnonymously().catch(e=>{console.warn('Firebase anonymous auth failed',e)}).finally(()=>{fbAuthStarting=false});
 }catch(e){fbAuthStarting=false}
@@ -395,6 +403,7 @@ fbApp=firebase.initializeApp(firebaseConfig);
 fbDb=firebase.database();
 if(firebase.auth){
 fbAuth=firebase.auth();
+try{fbAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(()=>{})}catch(e){}
 fbAuth.onAuthStateChanged(fbHandleAuthUser);
 fbScheduleAnonymousFallback();
 }
@@ -405,6 +414,7 @@ fbApp=firebase.app();
 fbDb=firebase.database();
 if(firebase.auth){
 fbAuth=firebase.auth();
+try{fbAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(()=>{})}catch(e){}
 fbAuth.onAuthStateChanged(fbHandleAuthUser);
 fbScheduleAnonymousFallback();
 }
@@ -419,7 +429,8 @@ setTimeout(()=>{cb&&cb(fbUser||null)},180);
 }
 
 var mmCloudSaveTimer=0,mmCloudSaveLoading=false,mmCloudSaveReady=false,mmCloudSaveLoadedFor='',mmCloudSavePending=false;
-function mmIsGoogleLoggedIn(){try{return !!(fbUser&&AUTH_UID&&!fbUser.isAnonymous)}catch(e){return false}}
+function mmRefreshCurrentGoogleUser(){try{const u=(fbAuth&&fbAuth.currentUser)||fbUser;if(u&&!u.isAnonymous){fbUser=u;AUTH_UID=u.uid;localStorage.setItem('mm_google_login','1');return true}}catch(e){}return false}
+function mmIsGoogleLoggedIn(){try{return mmRefreshCurrentGoogleUser()||!!(fbUser&&AUTH_UID&&!fbUser.isAnonymous)}catch(e){return false}}
 function mmAuthLabel(){return mmIsGoogleLoggedIn()?'Conta Google conectada':'Visitante'}
 function mmPublicSaveCopy(){
  const base=defaultSave();
@@ -472,37 +483,35 @@ function mmOnAuthChanged(u){
 }
 function mmSignInGoogle(){
  try{
-  if(window.mmGoogleLoginBusy)return;
-  window.mmGoogleLoginBusy=true;
-  setTimeout(()=>{window.mmGoogleLoginBusy=false},8000);
-
+  window.mmGoogleLoginBusy=false;
+  if(mmIsGoogleLoggedIn()){mmRenderAuthBox();return}
   if(!fbAuth||!firebase.auth||!firebase.auth.GoogleAuthProvider){
-    window.mmGoogleLoginBusy=false;
     alert('Login Google indisponível.');
     return;
   }
+  if(window.mmGoogleLoginBusy)return;
+  window.mmGoogleLoginBusy=true;
+  const unlockTimer=setTimeout(()=>{window.mmGoogleLoginBusy=false;try{mmRenderAuthBox()}catch(e){}},10000);
 
   const provider=new firebase.auth.GoogleAuthProvider();
   provider.setCustomParameters({prompt:'select_account'});
+  const isStandalone=(()=>{try{return window.matchMedia('(display-mode: standalone)').matches||document.referrer.indexOf('android-app://')===0}catch(e){return false}})();
+  const isMobile=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent||'');
 
-  fbAuth.signInWithPopup(provider)
-  .then(()=>{
-    window.mmGoogleLoginBusy=false;
-    mmRenderAuthBox();
-    mmLoadCloudSave(true);
-  })
-  .catch(err=>{
+  const done=()=>{clearTimeout(unlockTimer);window.mmGoogleLoginBusy=false;mmRenderAuthBox();mmLoadCloudSave(true)};
+  const fail=(err)=>{clearTimeout(unlockTimer);window.mmGoogleLoginBusy=false;console.warn('Google login failed',err);try{mmRenderAuthBox(true)}catch(e){} };
+
+  if(isStandalone||isMobile){
+    fbAuth.signInWithRedirect(provider).catch(fail);
+    setTimeout(()=>{window.mmGoogleLoginBusy=false},2500);
+    return;
+  }
+
+  fbAuth.signInWithPopup(provider).then(done).catch(err=>{
     console.warn('Google popup failed, using redirect',err);
-
-    try{
-      window.mmGoogleLoginBusy=false;
-      fbAuth.signInWithRedirect(provider);
-    }catch(e){
-      window.mmGoogleLoginBusy=false;
-      alert('Não foi possível abrir o login Google agora.');
-    }
+    window.mmGoogleLoginBusy=false;
+    try{fbAuth.signInWithRedirect(provider).catch(fail)}catch(e){fail(e)}
   });
-
  }catch(e){
    window.mmGoogleLoginBusy=false;
    alert('Não foi possível abrir o login Google agora.');
@@ -513,10 +522,11 @@ function mmSignOutGoogle(){
  try{if(fbAuth)fbAuth.signOut().finally(()=>{localStorage.removeItem('mm_google_login');fbStartAnonymous();setTimeout(mmRenderAuthBox,300)})}catch(e){}
 }
 function mmRequireGoogleForMultiplayer(){
+ window.mmGoogleLoginBusy=false;
  if(mmIsGoogleLoggedIn())return true;
- // Mesmo durante restauração, o botão nunca deve ficar morto: mostra o login imediatamente.
- if(mmAuthRestorePending())mpStatus('Verificando sua conta Google...');
- else mpStatus('Faça login com Google para jogar multiplayer e salvar seu progresso online.');
+ try{if(fbAuth&&fbAuth.currentUser&&!fbAuth.currentUser.isAnonymous){fbHandleAuthUser(fbAuth.currentUser);return true}}catch(e){}
+ if(mmHadGoogleLogin()&&!fbAuthInitialized){mpStatus('Restaurando sua conta Google... aguarde um instante.');setTimeout(()=>{try{mmRenderAuthBox(!mmIsGoogleLoggedIn())}catch(e){}},400);return false}
+ mpStatus('Faça login com Google para jogar multiplayer e salvar seu progresso online.');
  try{mmRenderAuthBox(true)}catch(e){}
  return false;
 }
