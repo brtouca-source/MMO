@@ -1385,8 +1385,24 @@ document.getElementById('btnPlay').addEventListener('click',()=>{
 });
 document.getElementById('btnMap').addEventListener('click',()=>{buildMap();showScreen('map')});
 document.getElementById('btnDownloadGame')?.addEventListener('click',()=>{
+ const APK_URL='https://github.com/mmotoucabr-byte/dowload/releases/download/MundoMagico/MundoMagico_v0.1_Android.apk';
  const ok=confirm('APK oficial do Mundo Mágico por ToucaBR. Arquivo seguro hospedado no GitHub. Deseja baixar agora?');
- if(ok){window.location.href='https://github.com/mmotoucabr-byte/dowload/releases/download/MundoMagico/MundoMagico_v0.1_Android.apk'}
+ if(!ok)return;
+ try{
+   const a=document.createElement('a');
+   a.href=APK_URL;
+   a.download='MundoMagico_v0.1_Android.apk';
+   a.target='_blank';
+   a.rel='noopener noreferrer';
+   a.style.position='fixed';
+   a.style.left='-9999px';
+   a.style.top='-9999px';
+   document.body.appendChild(a);
+   a.click();
+   setTimeout(()=>{try{a.remove()}catch(e){}},1200);
+ }catch(e){
+   try{window.open(APK_URL,'_blank','noopener')}catch(_){window.location.assign(APK_URL)}
+ }
 });
 document.getElementById('btnShop').addEventListener('click',()=>{buildShop('skins');showScreen('shop')});
 document.getElementById('btnMissions').addEventListener('click',()=>{buildMissions('daily');showScreen('missions')});
