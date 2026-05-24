@@ -356,7 +356,7 @@ if(gameExitBtn)gameExitBtn.onclick=e=>{e.preventDefault();e.stopPropagation();ha
 if(defeatRestartBtn)defeatRestartBtn.onclick=e=>{e.preventDefault();e.stopPropagation();if(typeof MP!=='undefined'&&MP&&MP.on){say(LANG==='pt'?'Aguarde o outro jogador terminar a fase ou perder.':'Wait for the other player to clear the stage or lose.',1.4,'#60d0ff');return}if(started)startGame(li)};
 
 const firebaseConfig={apiKey:"AIzaSyBZvxl3BKYS4WIA0Ov1xQ7xLwLRrJm7SwU",authDomain:"mundo-magico-online.firebaseapp.com",databaseURL:"https://mundo-magico-online-default-rtdb.firebaseio.com",projectId:"mundo-magico-online",storageBucket:"mundo-magico-online.firebasestorage.app",messagingSenderId:"495535078197",appId:"1:495535078197:web:6f86b82c22f3492e802a7c"};
-let fbApp=null,fbDb=null,fbAuth=null,fbUser=null,fbAuthStarting=false,fbAuthInitialized=false;
+let fbApp=null,fbDb=null,fbAuth=null,fbUser=null,fbAuthStarting=false,fbAuthInitialized=false,fbAuthBootAt=Date.now();
 let AUTH_UID=null;
 function fbHandleAuthUser(u){
 fbAuthInitialized=true;
@@ -411,8 +411,9 @@ fbScheduleAnonymousFallback();
 function fbEnsureAuth(cb){
 if(!fbAuth){cb&&cb(null);return}
 if(fbUser){cb&&cb(fbUser);return}
+if(mmAuthRestorePending()){setTimeout(()=>fbEnsureAuth(cb),160);return}
 fbStartAnonymous();
-setTimeout(()=>fbEnsureAuth(cb),120);
+setTimeout(()=>fbEnsureAuth(cb),160);
 }
 
 var mmCloudSaveTimer=0,mmCloudSaveLoading=false,mmCloudSaveReady=false,mmCloudSaveLoadedFor='',mmCloudSavePending=false;
@@ -513,10 +514,9 @@ function mmRequireGoogleForMultiplayer(){
  if(mmIsGoogleLoggedIn())return true;
  if(mmAuthRestorePending()){
   mpStatus('Carregando sua conta Google... tente novamente em alguns segundos.');
-  setTimeout(()=>{try{mmRenderAuthBox(false)}catch(e){}},700);
+  setTimeout(()=>{try{if(!mmIsGoogleLoggedIn())mmRenderAuthBox(true)}catch(e){}},1400);
   return false;
  }
- try{showScreen('menu',true)}catch(e){}
  mmRenderAuthBox(true);
  mpStatus('Faça login com Google para jogar multiplayer e salvar seu progresso online.');
  return false;
@@ -534,15 +534,21 @@ function mmEnsureAuthBox(){
 function mmPositionAuthBox(){
  try{
   const box=document.getElementById('mmAuthBox')||mmEnsureAuthBox();
-  const btn=document.getElementById('btnMultiplayer')||document.getElementById('btnCreateRoom');
+  function visibleBtn(id){
+    const el=document.getElementById(id);if(!el)return null;
+    const r=el.getBoundingClientRect();
+    const cs=getComputedStyle(el);
+    return (r.width>8&&r.height>8&&cs.display!=='none'&&cs.visibility!=='hidden')?el:null;
+  }
+  const btn=visibleBtn('btnCreateRoom')||visibleBtn('btnMultiplayer')||visibleBtn('btnJoinRoom');
   if(!box||!btn)return;
   const r=btn.getBoundingClientRect();
   const bw=box.offsetWidth||150,bh=box.offsetHeight||74,gap=10;
   let left=r.left-bw-gap;
   let top=r.top+(r.height-bh)/2;
-  if(left<6){left=r.left;top=Math.max(6,r.top-bh-gap)}
+  if(left<6){left=Math.min(window.innerWidth-bw-6,Math.max(6,r.left));top=Math.max(6,r.top-bh-gap)}
   if(top<6)top=6;
-  if(top+bh>window.innerHeight-6)top=window.innerHeight-bh-6;
+  if(top+bh>window.innerHeight-6)top=Math.max(6,window.innerHeight-bh-6);
   box.style.left=Math.round(left)+'px';
   box.style.top=Math.round(top)+'px';
  }catch(e){}
@@ -557,6 +563,8 @@ function mmRenderAuthBox(focus=false){
   if(focus){mmPositionAuthBox();box.classList.add('open');setTimeout(mmPositionAuthBox,30)}
  }catch(e){}
 }
+
+try{window.addEventListener('resize',()=>{try{if(document.getElementById('mmAuthBox')?.classList.contains('open'))mmPositionAuthBox()}catch(e){}});window.addEventListener('orientationchange',()=>setTimeout(()=>{try{if(document.getElementById('mmAuthBox')?.classList.contains('open'))mmPositionAuthBox()}catch(e){}},220));}catch(e){}
 
 const MP={on:false,room:'',playerId:'',role:'',nick:'',roomRef:null,playerRef:null,lobbyRef:null,players:{},enemyStates:{},shotStates:{},hazardStates:{},lastSend:0,lastWorldSend:0,lastEnemySend:0,lastShotSend:0,lastHazardSend:0,lastWorldMetaSend:0,lastPlayerSync:null,lastEnemyHash:'',lastShotHash:'',lastHazardHash:'',lastWorldHash:'',eventSeq:0,worldReady:false,lastRestart:0,lastStageSeen:null,knownPlayers:{},joinToast:'',joinToastT:0,lastGoalReq:0,restarting:false,remoteSmooth:{},remoteFx:[],lastPlayerEventKey:'',remoteKillCredit:null,roomCreatedAt:0,started:false};
 function mpId(){let id=localStorage.getItem('cc2_player_id');if(!id){id='p_'+Math.random().toString(36).slice(2,10);localStorage.setItem('cc2_player_id',id)}return id}
