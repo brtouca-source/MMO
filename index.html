@@ -31,6 +31,17 @@ body{position:fixed;inset:0;min-width:100%;min-height:100%;}
 .mm-auth-title{font-weight:950;margin:0 18px 4px 0;text-shadow:0 2px 0 rgba(0,0,0,.35)}
 .mm-auth-sub{opacity:.85;margin-bottom:6px;font-weight:800}.mm-auth-btn{width:100%;border:0;border-radius:10px;padding:8px 7px;font-weight:950;background:#fff;color:#222;box-shadow:0 4px 0 rgba(0,0,0,.32);font-size:11px}.mm-auth-close{position:absolute;right:5px;top:5px;width:20px;height:20px;border:0;border-radius:999px;background:rgba(0,0,0,.32);color:#fff;font-weight:950;line-height:20px;padding:0}
 @media (max-width:780px){.mm-auth-box-inline{min-width:132px;max-width:150px;font-size:9px;padding:7px 8px}.mm-auth-btn{font-size:10px;padding:7px 5px}}
+
+.hm-btn-download{
+  background:linear-gradient(180deg,#ffe45c 0%,#ffc400 100%) !important;
+  color:#15110a !important;
+  text-decoration:none !important;
+  border-color:rgba(86,56,0,.55) !important;
+  box-shadow:0 5px 0 rgba(92,62,0,.45),0 10px 18px rgba(0,0,0,.22) !important;
+}
+.hm-btn-download span{color:#15110a !important;}
+.hm-btn-download:active{transform:translateY(2px) scale(.98);}
+
 </style>
 
 </head>
@@ -78,6 +89,7 @@ body{position:fixed;inset:0;min-width:100%;min-height:100%;}
   <!-- LEFT PANEL -->
   <div class="hm-left">
     <div class="hm-side-nav hm-side-nav-compact">
+      <a class="btn hm-side-btn hm-btn-download" id="btnDownloadGame" href="https://github.com/mmotoucabr-byte/dowload/releases/download/MundoMagico/MundoMagico_v0.1_Android.apk" download title="APK oficial e seguro do Mundo Mágico">⬇️<br><span>BAIXAR JOGO</span></a>
       <button class="btn hm-side-btn hm-btn-missions" id="btnMissions">📋<br><span>MISSÕES</span></button>
       <button class="btn hm-side-btn hm-btn-inv" id="btnInv">🎒<br><span>MOCHILA</span></button>
       <button class="btn hm-side-btn hm-btn-settings" id="btnSettings">⚙<br><span>OPÇÕES</span></button>
