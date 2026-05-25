@@ -371,6 +371,9 @@ try{if(typeof mmRenderAuthBox==='function')mmRenderAuthBox()}catch(e){}
 }
 
 function mmHadGoogleLogin(){try{return localStorage.getItem('mm_google_login')==='1'}catch(e){return false}}
+function mmTrustLocalLogin(){try{return localStorage.getItem('mm_google_login')==='1'||localStorage.getItem('mm_google_login_trusted')==='1'}catch(e){return false}}
+function mmMarkGoogleTrusted(){try{localStorage.setItem('mm_google_login','1');localStorage.setItem('mm_google_login_trusted','1');localStorage.setItem('mm_google_login_at',String(Date.now()))}catch(e){}}
+function mmClearGoogleTrusted(){try{localStorage.removeItem('mm_google_login');localStorage.removeItem('mm_google_login_trusted');localStorage.removeItem('mm_google_login_at')}catch(e){}}
 function fbScheduleAnonymousFallback(){
  try{
   const delay=mmHadGoogleLogin()?6500:650;
@@ -379,7 +382,7 @@ function fbScheduleAnonymousFallback(){
     if(fbUser)return;
     // Se já houve login Google neste aparelho, não força anônimo cedo.
     // Isso evita atropelar a restauração da sessão Google no TWA/app.
-    if(mmHadGoogleLogin())return;
+    if(mmHadGoogleLogin()){fbStartAnonymous(true);return;}
     fbStartAnonymous();
    }catch(e){}
   },delay);
@@ -387,12 +390,13 @@ function fbScheduleAnonymousFallback(){
 }
 function mmAuthRestorePending(){try{return !!(fbAuth&&mmHadGoogleLogin()&&!fbAuthInitialized&&!fbUser&&(Date.now()-fbAuthBootAt<5000))}catch(e){return false}}
 
-function fbStartAnonymous(){
+function fbStartAnonymous(force=false){
 try{
  if(!fbAuth||fbUser||fbAuthStarting)return;
- // Se este aparelho já teve login Google, não cria sessão anônima automática.
- // Isso evita trocar a conta Google restaurável por visitante ao reabrir o app/TWA.
- if(mmHadGoogleLogin())return;
+ // Normalmente não atropela uma sessão Google salva.
+ // Mas, se o app/site reabrir e o Firebase não restaurar a sessão,
+ // usamos anônimo como transporte de regras enquanto o acesso salvo localmente libera o multiplayer.
+ if(mmHadGoogleLogin()&&!force)return;
  fbAuthStarting=true;
  fbAuth.signInAnonymously().catch(e=>{console.warn('Firebase anonymous auth failed',e)}).finally(()=>{fbAuthStarting=false});
 }catch(e){fbAuthStarting=false}
@@ -424,14 +428,15 @@ function fbEnsureAuth(cb){
 if(!fbAuth){cb&&cb(null);return}
 if(fbUser){cb&&cb(fbUser);return}
 if(mmAuthRestorePending()){setTimeout(()=>fbEnsureAuth(cb),160);return}
-if(!mmHadGoogleLogin())fbStartAnonymous();
-setTimeout(()=>{cb&&cb(fbUser||null)},180);
+if(!fbUser){fbStartAnonymous(mmTrustLocalLogin())}
+setTimeout(()=>{cb&&cb(fbUser||null)},220);
 }
 
 var mmCloudSaveTimer=0,mmCloudSaveLoading=false,mmCloudSaveReady=false,mmCloudSaveLoadedFor='',mmCloudSavePending=false;
-function mmRefreshCurrentGoogleUser(){try{const u=(fbAuth&&fbAuth.currentUser)||fbUser;if(u&&!u.isAnonymous){fbUser=u;AUTH_UID=u.uid;localStorage.setItem('mm_google_login','1');return true}}catch(e){}return false}
+function mmRefreshCurrentGoogleUser(){try{const u=(fbAuth&&fbAuth.currentUser)||fbUser;if(u&&!u.isAnonymous){fbUser=u;AUTH_UID=u.uid;mmMarkGoogleTrusted();return true}}catch(e){}return false}
 function mmIsGoogleLoggedIn(){try{return mmRefreshCurrentGoogleUser()||!!(fbUser&&AUTH_UID&&!fbUser.isAnonymous)}catch(e){return false}}
-function mmAuthLabel(){return mmIsGoogleLoggedIn()?'Conta Google conectada':'Visitante'}
+function mmCanUseMultiplayer(){try{return mmIsGoogleLoggedIn()||mmTrustLocalLogin()}catch(e){return false}}
+function mmAuthLabel(){return mmCanUseMultiplayer()?'Conta liberada':'Visitante'}
 function mmPublicSaveCopy(){
  const base=defaultSave();
  const allowed=['coins','hiScore','lang','bgm','sfx','shake','blood','owned','equipped','unlockedStages','completedStages','stageStars','selectedStage','currentDimension','unlockedDimension','dimensionClears','missions','missionProgress','lastMissionReset','version'];
@@ -477,7 +482,7 @@ function mmLoadCloudSave(force=false){
 }
 function mmOnAuthChanged(u){
  try{
-  if(u&&!u.isAnonymous){localStorage.setItem('mm_google_login','1');SOCIAL.uid=u.uid;mmLoadCloudSave(true)}
+  if(u&&!u.isAnonymous){mmMarkGoogleTrusted();SOCIAL.uid=u.uid;mmLoadCloudSave(true)}
   else{mmCloudSaveReady=false;mmCloudSaveLoadedFor=''}
  }catch(e){}
 }
@@ -498,7 +503,7 @@ function mmSignInGoogle(){
   const isStandalone=(()=>{try{return window.matchMedia('(display-mode: standalone)').matches||document.referrer.indexOf('android-app://')===0}catch(e){return false}})();
   const isMobile=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent||'');
 
-  const done=()=>{clearTimeout(unlockTimer);window.mmGoogleLoginBusy=false;mmRenderAuthBox();mmLoadCloudSave(true)};
+  const done=()=>{clearTimeout(unlockTimer);window.mmGoogleLoginBusy=false;mmMarkGoogleTrusted();mmRenderAuthBox();mmLoadCloudSave(true)};
   const fail=(err)=>{clearTimeout(unlockTimer);window.mmGoogleLoginBusy=false;console.warn('Google login failed',err);try{mmRenderAuthBox(true)}catch(e){} };
 
   if(isStandalone||isMobile){
@@ -519,13 +524,21 @@ function mmSignInGoogle(){
 }
 function mmSignOutGoogle(){
  try{if(MP&&MP.on)mpLeaveRoom()}catch(e){}
- try{if(fbAuth)fbAuth.signOut().finally(()=>{localStorage.removeItem('mm_google_login');fbStartAnonymous();setTimeout(mmRenderAuthBox,300)})}catch(e){}
+ try{if(fbAuth)fbAuth.signOut().finally(()=>{mmClearGoogleTrusted();fbStartAnonymous(true);setTimeout(mmRenderAuthBox,300)})}catch(e){}
 }
 function mmRequireGoogleForMultiplayer(){
  window.mmGoogleLoginBusy=false;
  if(mmIsGoogleLoggedIn())return true;
  try{if(fbAuth&&fbAuth.currentUser&&!fbAuth.currentUser.isAnonymous){fbHandleAuthUser(fbAuth.currentUser);return true}}catch(e){}
- if(mmHadGoogleLogin()&&!fbAuthInitialized){mpStatus('Restaurando sua conta Google... aguarde um instante.');setTimeout(()=>{try{mmRenderAuthBox(!mmIsGoogleLoggedIn())}catch(e){}},400);return false}
+ // Se o jogador já logou uma vez neste aparelho, não fica pedindo login toda vez.
+ // Firebase Auth normalmente restaura o Google; se não restaurar, usa sessão anônima só para passar pelas regras.
+ if(mmTrustLocalLogin()){
+   try{if(fbAuth&&!fbUser)fbStartAnonymous(true)}catch(e){}
+   if(fbUser||!fbAuth)return true;
+   mpStatus('Restaurando acesso salvo... tente novamente em instantes.');
+   setTimeout(()=>{try{mmRenderAuthBox(false)}catch(e){}},250);
+   return false;
+ }
  mpStatus('Faça login com Google para jogar multiplayer e salvar seu progresso online.');
  try{mmRenderAuthBox(true)}catch(e){}
  return false;
@@ -565,9 +578,9 @@ function mmPositionAuthBox(){
 function mmRenderAuthBox(focus=false){
  try{
   const box=mmEnsureAuthBox();
-  const logged=mmIsGoogleLoggedIn();
+  const logged=mmCanUseMultiplayer();
   const btn=document.getElementById('mmGoogleLoginBtn');
-  if(btn){btn.textContent=logged?'Conta conectada':'Entrar com Google';btn.onclick=logged?function(ev){ev.preventDefault();ev.stopPropagation();box.classList.remove('open')}:function(ev){ev.preventDefault();ev.stopPropagation();mmSignInGoogle()};}
+  if(btn){btn.textContent=logged?'Conta liberada':'Entrar com Google';btn.onclick=logged?function(ev){ev.preventDefault();ev.stopPropagation();box.classList.remove('open')}:function(ev){ev.preventDefault();ev.stopPropagation();mmSignInGoogle()};}
   if(logged){box.classList.remove('open');return}
   if(focus){mmPositionAuthBox();box.classList.add('open');setTimeout(mmPositionAuthBox,30)}
  }catch(e){}
