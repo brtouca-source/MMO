@@ -492,49 +492,10 @@ function mmSignOutGoogle(){
  try{if(MP&&MP.on)mpLeaveRoom()}catch(e){}
  try{if(fbAuth)fbAuth.signOut().finally(()=>{localStorage.removeItem('mm_google_login');fbStartAnonymous();setTimeout(mmRenderAuthBox,300)})}catch(e){}
 }
-function mmRequireGoogleForMultiplayer(){
- if(mmIsGoogleLoggedIn())return true;
- try{showScreen('menu',true)}catch(e){}
- mmRenderAuthBox(true);
- mpStatus('Faça login com Google para jogar multiplayer e salvar seu progresso online.');
- return false;
-}
-function mmEnsureAuthBox(){
- let box=document.getElementById('mmAuthBox');
- if(box)return box;
- box=document.createElement('div');box.id='mmAuthBox';box.className='mm-auth-box-inline';
- box.innerHTML='<button id="mmAuthCloseBtn" class="mm-auth-close" type="button" aria-label="Fechar">×</button><div class="mm-auth-title">🔐 Multiplayer</div><div class="mm-auth-sub">Entre com Google para criar sala.</div><button id="mmGoogleLoginBtn" class="mm-auth-btn" type="button">Entrar com Google</button>';
- document.body.appendChild(box);
- const close=document.getElementById('mmAuthCloseBtn');
- if(close)close.onclick=function(ev){ev.preventDefault();ev.stopPropagation();box.classList.remove('open')};
- return box;
-}
-function mmPositionAuthBox(){
- try{
-  const box=document.getElementById('mmAuthBox')||mmEnsureAuthBox();
-  const btn=document.getElementById('btnMultiplayer')||document.getElementById('btnCreateRoom');
-  if(!box||!btn)return;
-  const r=btn.getBoundingClientRect();
-  const bw=box.offsetWidth||150,bh=box.offsetHeight||74,gap=10;
-  let left=r.left-bw-gap;
-  let top=r.top+(r.height-bh)/2;
-  if(left<6){left=r.left;top=Math.max(6,r.top-bh-gap)}
-  if(top<6)top=6;
-  if(top+bh>window.innerHeight-6)top=window.innerHeight-bh-6;
-  box.style.left=Math.round(left)+'px';
-  box.style.top=Math.round(top)+'px';
- }catch(e){}
-}
-function mmRenderAuthBox(focus=false){
- try{
-  const box=mmEnsureAuthBox();
-  const logged=mmIsGoogleLoggedIn();
-  const btn=document.getElementById('mmGoogleLoginBtn');
-  if(btn){btn.textContent=logged?'Conta conectada':'Entrar com Google';btn.onclick=logged?function(ev){ev.preventDefault();ev.stopPropagation();box.classList.remove('open')}:function(ev){ev.preventDefault();ev.stopPropagation();mmSignInGoogle()};}
-  if(logged){box.classList.remove('open');return}
-  if(focus){mmPositionAuthBox();box.classList.add('open');setTimeout(mmPositionAuthBox,30)}
- }catch(e){}
-}
+function mmRequireGoogleForMultiplayer(){return true}
+function mmEnsureAuthBox(){try{const old=document.getElementById('mmAuthBox');if(old)old.remove()}catch(e){}return null}
+function mmPositionAuthBox(){}
+function mmRenderAuthBox(focus=false){try{const old=document.getElementById('mmAuthBox');if(old)old.remove()}catch(e){}}
 
 const MP={on:false,room:'',playerId:'',role:'',nick:'',roomRef:null,playerRef:null,lobbyRef:null,players:{},enemyStates:{},shotStates:{},hazardStates:{},lastSend:0,lastWorldSend:0,lastEnemySend:0,lastShotSend:0,lastHazardSend:0,lastWorldMetaSend:0,lastPlayerSync:null,lastEnemyHash:'',lastShotHash:'',lastHazardHash:'',lastWorldHash:'',eventSeq:0,worldReady:false,lastRestart:0,lastStageSeen:null,knownPlayers:{},joinToast:'',joinToastT:0,lastGoalReq:0,restarting:false,remoteSmooth:{},remoteFx:[],lastPlayerEventKey:'',remoteKillCredit:null,roomCreatedAt:0,started:false};
 function mpId(){let id=localStorage.getItem('cc2_player_id');if(!id){id='p_'+Math.random().toString(36).slice(2,10);localStorage.setItem('cc2_player_id',id)}return id}
@@ -800,7 +761,7 @@ mpUpdateStartButton();renderHomeSquadLobby();
 }
 
 function mpRenderChat(){const box=document.getElementById('mpChatMessages');const arr=Object.values(MP.chat||{}).sort((a,b)=>(+a.at||0)-(+b.at||0)).slice(-16);const badge=document.getElementById('btnHomeChat');if(badge){badge.classList.toggle('has-msg',arr.length>0);badge.title=arr.length?('Chat da sala: '+arr.length+' mensagens'):'Chat da sala'}if(!box)return;box.innerHTML=arr.length?arr.map(m=>`<div class="mp-chat-msg"><b>${mpCleanNick(m.nick||'Jogador')}:</b> ${mpCleanNick(m.text||'')}</div>`).join(''):'<div class="mp-chat-empty">Chat da sala vazio.</div>';box.scrollTop=box.scrollHeight}
-function mpSetupChat(){try{if(!MP.roomRef)return;MP.chat={};if(MP.chatRef)try{MP.chatRef.off()}catch(e){}MP.chatRef=MP.roomRef.child('chat');MP.chatRef.limitToLast(16).on('value',snap=>{MP.chat=snap.val()||{};mpRenderChat()});mpRenderChat()}catch(e){}}
+function mpSetupChat(){try{if(MP&&MP.chatRef)MP.chatRef.off();MP.chat={}}catch(e){}}
 function mpPublishEquipped(){try{if(MP&&MP.on&&MP.playerRef){MP.playerRef.update({skin:(save.equipped&&save.equipped.skin)||'skin_pink',weapon:(save.equipped&&save.equipped.weapon)||'axe_default',updated:firebase.database.ServerValue.TIMESTAMP});renderHomeSquadLobby();}}catch(e){}}
 
 function mpToggleHomeChat(){
@@ -819,26 +780,7 @@ try{
 }catch(e){}
 }
 
-function mpSendChat(){
-try{
- if(!MP||!MP.on||!MP.roomRef){mpStatus('Entre em uma sala para usar o chat.');return false}
- const inp=document.getElementById('mpChatInput')||document.querySelector('.mp-chat-input');
- if(!inp){mpStatus('Campo do chat não encontrado.');return false}
- const f=mpChatFilterText(inp.value||'');
- if(!f.ok){mpStatus(f.msg||'Mensagem inválida.');return false}
- const uid=String(AUTH_UID||MP.playerId||mpId()||'anon');
- const nick=String(MP.nick||SOCIAL.nick||getGlobalNickValue()||mmNickStored()||'Jogador').slice(0,20);
- const msg={uid:uid,nick:nick,text:String(f.text).slice(0,120),at:firebase.database.ServerValue.TIMESTAMP};
- inp.value='';
- const msgRef=MP.roomRef.child('chat').push();
- msgRef.set(msg).then(()=>{mpRenderChat();}).catch(err=>{
-   try{inp.value=f.text}catch(e){}
-   console.warn('chat send failed',err);
-   mpStatus('Chat bloqueado pelas regras Firebase.');
- });
- return true;
-}catch(e){console.warn('mpSendChat error',e);mpStatus('Erro ao enviar mensagem.');return false}
-}
+function mpSendChat(){return false}
 function mpUpdateStartButton(){const b=document.getElementById('btnMpStart');if(!b)return;if(!MP.on){b.style.display='none';return}b.style.display='block';if(MP.role==='host'){b.disabled=false;b.textContent='▶ INICIAR PARTIDA'}else{b.disabled=true;b.textContent='AGUARDANDO CRIADOR'}}
 function mpToast(s,life=2.8,col='#60d0ff'){texts.push({x:cam.x+W/2,y:58,s,life,max:life,col,big:1});mpStatus(s)}
 function mpPassKey(v){return String(v||'').trim().slice(0,18)}
@@ -861,7 +803,7 @@ function socialRenderRooms(){const box=document.getElementById('roomsListBox');i
   const inp=document.getElementById('mpRoomInput');if(inp)inp.value=b.dataset.joinroom;
   mpJoinRoom(b.dataset.joinroom, b.dataset.private==='1');
 })}
-function mpOpen(){if(!mmRequireGoogleForMultiplayer())return;if(fbAuth&&!fbUser){mpStatus('Conectando com segurança...');fbEnsureAuth(()=>mpOpen());return}syncNickFields(getGlobalNickValue()||mmNickStored()||'');socialInit();socialGo('play');socialRenderRooms();if(MP.room){document.getElementById('mpCodeBox').style.display='none';mpStatus('Sala conectada.')}mpLobbyText();mpUpdateStartButton()}
+function mpOpen(){if(fbAuth&&!fbUser){mpStatus('Conectando com segurança...');fbEnsureAuth(()=>mpOpen());return}syncNickFields(getGlobalNickValue()||mmNickStored()||'');socialInit();socialGo('play');socialRenderRooms();if(MP.room){document.getElementById('mpCodeBox').style.display='none';mpStatus('Sala conectada.')}mpLobbyText();mpUpdateStartButton()}
 function mpConnectRoom(room,role,lobbyInfo){
 if(!mmRequireGoogleForMultiplayer())return false;
 if(fbAuth&&!fbUser){mpStatus('Conectando com segurança...');fbEnsureAuth(()=>mpConnectRoom(room,role,lobbyInfo));return false}
@@ -874,7 +816,7 @@ if(role==='host'){try{MP.roomRef.onDisconnect().remove();MP.lobbyRef.onDisconnec
 const joinIndex=Math.min(role==='host'?0:(+((lobbyInfo&&lobbyInfo.playersCount)||Object.keys(MP.players||{}).length)||0),MP_MAX_PLAYERS-1);const spawnOffsets=[{x:0,y:0},{x:70,y:0},{x:-70,y:0},{x:0,y:70}];const sp=spawnOffsets[joinIndex]||spawnOffsets[0];MP.playerRef.set({nick:MP.nick,role,authUid:AUTH_UID||'',deviceId:socialDeviceId(),skin:save.equipped.skin||'skin_pink',weapon:save.equipped.weapon||'axe_default',hp:8,x:78+sp.x,y:120+sp.y,dir:1,stage:save.selectedStage,online:true,updated:firebase.database.ServerValue.TIMESTAMP,lastSeen:firebase.database.ServerValue.TIMESTAMP});
 const metaPatch={code:room,stage:save.selectedStage,updated:firebase.database.ServerValue.TIMESTAMP,started:false,maxPlayers:MP_MAX_PLAYERS,createdClientAt:MP.roomCreatedAt};
 if(role==='host'){metaPatch.host=MP.playerId;metaPatch.creator=MP.nick||SOCIAL.nick||'Jogador';metaPatch.hostAuthUid=AUTH_UID||'';MP.roomRef.child('meta').update(metaPatch);}
-MP.roomRef.child('players').on('value',snap=>{const old=MP.players||{};MP.players=snap.val()||{};if(MP.on&&MP.role!=='host'&&MP.playerId&&!MP.players[MP.playerId]){mpHandleKickedFromRoom();return}const active=mpCountRoomPlayersFromSnapshot(MP.players);mpUpdateLobbyCountFromPlayers(MP.players);if(active<=0&&MP.role==='host'){MP.roomRef.remove();if(MP.lobbyRef)MP.lobbyRef.remove();return}for(const [id,pl] of Object.entries(MP.players)){if(id!==MP.playerId&&!MP.knownPlayers[id]){const nm=mpCleanNick(pl.nick||'');MP.joinToast='~'+nm+' entrou na sala';MP.joinToastT=3.2;mpStatus(MP.joinToast)}}MP.knownPlayers=Object.assign({},MP.players);mpLobbyText();socialRenderRooms();});
+MP.roomRef.child('players').on('value',snap=>{const old=MP.players||{};MP.players=snap.val()||{};if(MP.on&&MP.role!=='host'&&MP.playerId&&!MP.players[MP.playerId]){mpHandleKickedFromRoom();return}const active=mpCountRoomPlayersFromSnapshot(MP.players);mpUpdateLobbyCountFromPlayers(MP.players);if(active<=0&&MP.role==='host'){MP.roomRef.remove();if(MP.lobbyRef)MP.lobbyRef.remove();return}for(const [id,pl] of Object.entries(MP.players)){if(id!==MP.playerId&&!MP.knownPlayers[id]){const nm=mpCleanNick(pl.nick||'');MP.joinToast='~'+nm+' entrou na sala';MP.joinToastT=3.2;mpStatus(MP.joinToast)}}MP.knownPlayers=Object.assign({},MP.players);mpLobbyText();if(activeScreen==='multiplayer'||activeScreen==='menu')socialRenderRooms();});
 MP.roomRef.child('meta').on('value',snap=>{const m=snap.val()||{};const st=m.stage;MP.started=!!m.started;if(!MP.on||MP.role==='host')return;if(m.started&&typeof st==='number'){const restart=+m.restartToken||0;if(started&&typeof li==='number'&&li!==st)mpFinalizeClientStageOnce('advance_'+li+'_'+restart);if(!started||li!==st||restart!==MP.lastRestart){MP.lastRestart=restart;startGame(st)}}});
 MP.roomRef.child('enemies').on('value',snap=>{MP.enemyStates=snap.val()||{};if(MP.on&&MP.role!=='host')mpApplyEnemyStates(0)});
 MP.roomRef.child('shots').on('value',snap=>{MP.shotStates=snap.val()||{};if(MP.on&&MP.role!=='host')mpApplyShotStates(0)});
@@ -885,8 +827,8 @@ document.getElementById('mpCodeBox').style.display='none';
 try{showScreen('multiplayer',true)}catch(e){}
 mpStatus(role==='host'?('Sala criada. A partida expira se não iniciar em 5 minutos.'):('Entrou na sala. Aguarde o criador iniciar a partida.'));mpLobbyText();mpUpdateStartButton();return true;
 }
-function mpCreateRoom(){if(!mmRequireGoogleForMultiplayer())return;requireNickThen(()=>{if(MP.on){mpStatus('Você já está em uma sala. Saia dela antes de criar outra.');return}mpCheckOnlineCapacity((ok)=>{if(!ok){socialRenderRooms();return}const name=mpRoomNameClean(document.getElementById('mpRoomName')?.value||'');if(!name){mpStatus('Use outro nome de sala.');return}const pass=mpPassKey(document.getElementById('mpRoomPass')?.value||''),created=Date.now();mpCleanupOwnOpenRooms(()=>{const room=mpCode();const lobby={roomId:room,name,hostUid:AUTH_UID||mpId(),hostPlayerId:mpId(),deviceId:socialDeviceId(),hostNick:SOCIAL.nick,isPrivate:!!pass,password:pass,playersCount:1,maxPlayers:MP_MAX_PLAYERS,status:'open',started:false,createdClientAt:created,createdAt:firebase.database.ServerValue.TIMESTAMP,updatedAt:firebase.database.ServerValue.TIMESTAMP};mpLobbyRef(room).set(lobby).then(()=>mpConnectRoom(room,'host',lobby)).catch(()=>mpStatus('Não foi possível criar a sala. Verifique as regras Firebase.'))})})})}
-function mpJoinRoom(forcedRoom,forcePassword){if(!mmRequireGoogleForMultiplayer())return;validateAndClaimNick(ok=>{if(!ok)return;mpCheckOnlineCapacity((hasCapacity)=>{if(!hasCapacity){socialRenderRooms();return}const room=(forcedRoom||(document.getElementById('mpRoomInput').value||'')).trim().toUpperCase();if(room.length<4){mpStatus('Digite o código da sala ou escolha uma sala na lista.');return}mpLobbyRef(room).once('value').then(snap=>{const r=snap.val();if(!r){mpStatus('Sala não encontrada ou já fechada.');return}if((+r.playersCount||0)>=(+r.maxPlayers||MP_MAX_PLAYERS)){mpStatus('Sala cheia.');return}if(!r.started&&Date.now()-(+r.createdClientAt||+r.createdAt||Date.now())>300000){mpStatus('Sala expirada. Atualize a lista.');try{mpLobbyRef(room).remove();fbDb.ref('rooms/'+room).remove()}catch(e){}return}let pass='';if(r.isPrivate){pass=prompt('Senha da sala:')||'';if(mpPassKey(pass)!==mpPassKey(r.password||'')){mpStatus('Senha incorreta.');return}}mpConnectRoom(room,'client',r)}).catch(()=>mpStatus('Erro ao entrar na sala.'))})})}
+function mpCreateRoom(){requireNickThen(()=>{if(MP.on){mpStatus('Você já está em uma sala. Saia dela antes de criar outra.');return}mpCheckOnlineCapacity((ok)=>{if(!ok){socialRenderRooms();return}const name=mpRoomNameClean(document.getElementById('mpRoomName')?.value||'');if(!name){mpStatus('Use outro nome de sala.');return}const pass=mpPassKey(document.getElementById('mpRoomPass')?.value||''),created=Date.now();mpCleanupOwnOpenRooms(()=>{const room=mpCode();const lobby={roomId:room,name,hostUid:AUTH_UID||mpId(),hostPlayerId:mpId(),deviceId:socialDeviceId(),hostNick:SOCIAL.nick,isPrivate:!!pass,password:pass,playersCount:1,maxPlayers:MP_MAX_PLAYERS,status:'open',started:false,createdClientAt:created,createdAt:firebase.database.ServerValue.TIMESTAMP,updatedAt:firebase.database.ServerValue.TIMESTAMP};mpLobbyRef(room).set(lobby).then(()=>mpConnectRoom(room,'host',lobby)).catch(()=>mpStatus('Não foi possível criar a sala. Verifique as regras Firebase.'))})})})}
+function mpJoinRoom(forcedRoom,forcePassword){validateAndClaimNick(ok=>{if(!ok)return;mpCheckOnlineCapacity((hasCapacity)=>{if(!hasCapacity){socialRenderRooms();return}const room=(forcedRoom||(document.getElementById('mpRoomInput').value||'')).trim().toUpperCase();if(room.length<4){mpStatus('Digite o código da sala ou escolha uma sala na lista.');return}mpLobbyRef(room).once('value').then(snap=>{const r=snap.val();if(!r){mpStatus('Sala não encontrada ou já fechada.');return}if((+r.playersCount||0)>=(+r.maxPlayers||MP_MAX_PLAYERS)){mpStatus('Sala cheia.');return}if(!r.started&&Date.now()-(+r.createdClientAt||+r.createdAt||Date.now())>300000){mpStatus('Sala expirada. Atualize a lista.');try{mpLobbyRef(room).remove();fbDb.ref('rooms/'+room).remove()}catch(e){}return}let pass='';if(r.isPrivate){pass=prompt('Senha da sala:')||'';if(mpPassKey(pass)!==mpPassKey(r.password||'')){mpStatus('Senha incorreta.');return}}mpConnectRoom(room,'client',r)}).catch(()=>mpStatus('Erro ao entrar na sala.'))})})}
 function mpLeaveRoom(){try{if(MP.playerRef)MP.playerRef.remove();if(MP.roomRef){MP.roomRef.child('players').off();MP.roomRef.child('meta').off();MP.roomRef.child('enemies').off();MP.roomRef.child('shots').off();MP.roomRef.child('hazards').off();MP.roomRef.child('events').off();MP.roomRef.child('chat').off();if(MP.role==='host'){MP.roomRef.remove();if(MP.lobbyRef)MP.lobbyRef.remove()}else if(MP.lobbyRef&&MP.role==='host'){MP.lobbyRef.update({playersCount:Math.max(0,Object.values(MP.players||{}).filter(pl=>pl&&pl.online!==false).length),status:'open',updatedAt:firebase.database.ServerValue.TIMESTAMP})}}}catch(e){}MP.on=false;MP.started=false;MP.roomCreatedAt=0;MP.room='';MP.players={};MP.enemyStates={};MP.shotStates={};MP.hazardStates={};MP.worldReady=false;MP.restarting=false;MP.knownPlayers={};MP.remoteSmooth={};MP.remoteFx=[];MP.chat={};MP.chatRef=null;MP.playerRef=null;MP.roomRef=null;MP.lobbyRef=null;mpCleanNetworkCache();try{document.getElementById('mpChatBox')?.classList.remove('open');document.getElementById('btnHomeChat')?.classList.remove('open','has-msg')}catch(e){}document.getElementById('mpCodeBox').style.display='none';mpStatus('Saiu da sala.');mpLobbyText();mpUpdateStartButton();socialRenderRooms();}
 
 const SOCIAL={uid:'',nick:'',base:null,online:{},rooms:{},ranking:{},tab:'play',ready:false,nickOk:false,nickMsg:''};
@@ -994,7 +936,7 @@ const onlineRef=socialPath('playersOnline/'+SOCIAL.uid);
 onlineRef.onDisconnect().update({online:false,lastSeen:firebase.database.ServerValue.TIMESTAMP});
 if(getGlobalNickValue())validateAndClaimNick();
 socialPath('playersOnline').on('value',s=>{SOCIAL.online=s.val()||{}});
-if(fbDb)fbDb.ref('roomsLobby').on('value',s=>{SOCIAL.rooms=s.val()||{};mpUpdateOnlineHud();socialRenderRooms()});
+if(fbDb)fbDb.ref('roomsLobby').on('value',s=>{SOCIAL.rooms=s.val()||{};mpUpdateOnlineHud();if(activeScreen==='multiplayer'||activeScreen==='menu')socialRenderRooms()});
 socialPath('weeklyRanking/'+socialWeekId()).orderByChild('score').limitToLast(20).on('value',s=>{SOCIAL.ranking=s.val()||{};socialRenderRanking()});
 socialUpdateRanking();
 }
@@ -1038,7 +980,7 @@ function mpTick(dt){
 if(!MP.on||!MP.playerRef||!started)return;
 MP.lastSend-=dt;
 if(MP.lastSend<=0){
-MP.lastSend=.09;
+MP.lastSend=.12;
 const payload={nick:MP.nick,skin:save.equipped.skin||'skin_pink',weapon:save.equipped.weapon||'axe_default',x:Math.round(p.x),y:Math.round(p.y),vx:Math.round(p.vx),vy:Math.round(p.vy),dir:p.dir,hp:p.hp,mp:Math.round(p.mp),stage:li,atk:p.atk>0,fire:(p.fire>0||p.mgFiring>0),dashing:p.dashing>0,dead:gameOver};
 if(mpPlayerPayloadChanged(MP.lastPlayerSync,payload)){
 MP.lastPlayerSync=Object.assign({},payload);
@@ -1061,17 +1003,17 @@ function mpSyncWorld(dt){
 if(!MP.on||MP.role!=='host'||!MP.roomRef||!started)return;
 MP.lastEnemySend-=dt;MP.lastShotSend-=dt;MP.lastHazardSend-=dt;MP.lastWorldMetaSend-=dt;
 if(MP.lastEnemySend<=0){
-MP.lastEnemySend=.14;
+MP.lastEnemySend=.20;
 const pack={};enemies.forEach((e,i)=>{if(!e.id)e.id=mpEnemyKey(i,e);if(!e.dead||(e.death||0)>0)pack[e.id]=mpSerializeEnemy(e)});
 const h=mpCompactHash(pack);if(h!==MP.lastEnemyHash){MP.lastEnemyHash=h;MP.roomRef.child('enemies').set(pack)}
 }
 if(MP.lastShotSend<=0){
-MP.lastShotSend=.16;
+MP.lastShotSend=.24;
 const shotPack={};shots.forEach((sh,i)=>{if(mpIsEnemyShot(sh)){if(!sh.id)sh.id=mpShotKey(i,sh);shotPack[sh.id]=mpSerializeShot(sh)}});
 const h=mpCompactHash(shotPack);if(h!==MP.lastShotHash){MP.lastShotHash=h;MP.roomRef.child('shots').set(shotPack)}
 }
 if(MP.lastHazardSend<=0){
-MP.lastHazardSend=.18;
+MP.lastHazardSend=.30;
 const hazardPack={};hazards.forEach((hz,i)=>{if(mpIsSyncedHazard(hz)){if(!hz.id)hz.id=mpHazardKey(i,hz);hazardPack[hz.id]=mpSerializeHazard(hz)}});
 const h=mpCompactHash(hazardPack);if(h!==MP.lastHazardHash){MP.lastHazardHash=h;MP.roomRef.child('hazards').set(hazardPack)}
 }
@@ -1366,7 +1308,7 @@ document.getElementById('btnShop').addEventListener('click',()=>{buildShop('skin
 document.getElementById('btnMissions').addEventListener('click',()=>{buildMissions('daily');showScreen('missions')});
 document.getElementById('btnInv').addEventListener('click',()=>{buildInv();showScreen('inv')});
 document.getElementById('btnSettings').addEventListener('click',()=>{showScreen('settings')});
-document.getElementById('btnMultiplayer').addEventListener('click',()=>{if(mmRequireGoogleForMultiplayer()){mpOpen();showScreen('multiplayer')}});
+document.getElementById('btnMultiplayer').addEventListener('click',()=>{mpOpen();showScreen('multiplayer')});
 
 document.querySelectorAll('.online-tab').forEach(b=>b.addEventListener('click',()=>socialGo(b.dataset.onlineTab)));
 document.getElementById('btnRoomSearch')?.addEventListener('click',()=>socialRenderRooms());
