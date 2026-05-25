@@ -356,47 +356,16 @@ if(gameExitBtn)gameExitBtn.onclick=e=>{e.preventDefault();e.stopPropagation();ha
 if(defeatRestartBtn)defeatRestartBtn.onclick=e=>{e.preventDefault();e.stopPropagation();if(typeof MP!=='undefined'&&MP&&MP.on){say(LANG==='pt'?'Aguarde o outro jogador terminar a fase ou perder.':'Wait for the other player to clear the stage or lose.',1.4,'#60d0ff');return}if(started)startGame(li)};
 
 const firebaseConfig={apiKey:"AIzaSyBZvxl3BKYS4WIA0Ov1xQ7xLwLRrJm7SwU",authDomain:"mundo-magico-online.firebaseapp.com",databaseURL:"https://mundo-magico-online-default-rtdb.firebaseio.com",projectId:"mundo-magico-online",storageBucket:"mundo-magico-online.firebasestorage.app",messagingSenderId:"495535078197",appId:"1:495535078197:web:6f86b82c22f3492e802a7c"};
-let fbApp=null,fbDb=null,fbAuth=null,fbUser=null,fbAuthStarting=false,fbAuthInitialized=false,fbAuthBootAt=Date.now();
+let fbApp=null,fbDb=null,fbAuth=null,fbUser=null,fbAuthStarting=false;
 let AUTH_UID=null;
-try{
-  window.mmGoogleLoginBusy=false;
-  window.addEventListener('focus',()=>{window.mmGoogleLoginBusy=false},{passive:true});
-  document.addEventListener('visibilitychange',()=>{if(!document.hidden)window.mmGoogleLoginBusy=false},{passive:true});
-}catch(e){}
 function fbHandleAuthUser(u){
-fbAuthInitialized=true;
 fbUser=u||null;AUTH_UID=u&&u.uid?u.uid:null;
 try{if(typeof mmOnAuthChanged==='function')mmOnAuthChanged(u||null)}catch(e){}
 try{if(typeof mmRenderAuthBox==='function')mmRenderAuthBox()}catch(e){}
 }
-
-function mmHadGoogleLogin(){try{return localStorage.getItem('mm_google_login')==='1'}catch(e){return false}}
-function mmTrustLocalLogin(){try{return localStorage.getItem('mm_google_login')==='1'||localStorage.getItem('mm_google_login_trusted')==='1'}catch(e){return false}}
-function mmMarkGoogleTrusted(){try{localStorage.setItem('mm_google_login','1');localStorage.setItem('mm_google_login_trusted','1');localStorage.setItem('mm_google_login_at',String(Date.now()))}catch(e){}}
-function mmClearGoogleTrusted(){try{localStorage.removeItem('mm_google_login');localStorage.removeItem('mm_google_login_trusted');localStorage.removeItem('mm_google_login_at')}catch(e){}}
-function fbScheduleAnonymousFallback(){
- try{
-  const delay=mmHadGoogleLogin()?6500:650;
-  setTimeout(()=>{
-   try{
-    if(fbUser)return;
-    // Se já houve login Google neste aparelho, não força anônimo cedo.
-    // Isso evita atropelar a restauração da sessão Google no TWA/app.
-    if(mmHadGoogleLogin()){fbStartAnonymous(true);return;}
-    fbStartAnonymous();
-   }catch(e){}
-  },delay);
- }catch(e){}
-}
-function mmAuthRestorePending(){try{return !!(fbAuth&&mmHadGoogleLogin()&&!fbAuthInitialized&&!fbUser&&(Date.now()-fbAuthBootAt<5000))}catch(e){return false}}
-
-function fbStartAnonymous(force=false){
+function fbStartAnonymous(){
 try{
  if(!fbAuth||fbUser||fbAuthStarting)return;
- // Normalmente não atropela uma sessão Google salva.
- // Mas, se o app/site reabrir e o Firebase não restaurar a sessão,
- // usamos anônimo como transporte de regras enquanto o acesso salvo localmente libera o multiplayer.
- if(mmHadGoogleLogin()&&!force)return;
  fbAuthStarting=true;
  fbAuth.signInAnonymously().catch(e=>{console.warn('Firebase anonymous auth failed',e)}).finally(()=>{fbAuthStarting=false});
 }catch(e){fbAuthStarting=false}
@@ -407,9 +376,8 @@ fbApp=firebase.initializeApp(firebaseConfig);
 fbDb=firebase.database();
 if(firebase.auth){
 fbAuth=firebase.auth();
-try{fbAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(()=>{})}catch(e){}
 fbAuth.onAuthStateChanged(fbHandleAuthUser);
-fbScheduleAnonymousFallback();
+setTimeout(()=>{if(!fbUser)fbStartAnonymous()},450);
 }
 }
 }catch(e){
@@ -418,25 +386,21 @@ fbApp=firebase.app();
 fbDb=firebase.database();
 if(firebase.auth){
 fbAuth=firebase.auth();
-try{fbAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(()=>{})}catch(e){}
 fbAuth.onAuthStateChanged(fbHandleAuthUser);
-fbScheduleAnonymousFallback();
+setTimeout(()=>{if(!fbUser)fbStartAnonymous()},450);
 }
 }catch(_){}
 }
 function fbEnsureAuth(cb){
 if(!fbAuth){cb&&cb(null);return}
 if(fbUser){cb&&cb(fbUser);return}
-if(mmAuthRestorePending()){setTimeout(()=>fbEnsureAuth(cb),160);return}
-if(!fbUser){fbStartAnonymous(mmTrustLocalLogin())}
-setTimeout(()=>{cb&&cb(fbUser||null)},220);
+fbStartAnonymous();
+setTimeout(()=>fbEnsureAuth(cb),120);
 }
 
 var mmCloudSaveTimer=0,mmCloudSaveLoading=false,mmCloudSaveReady=false,mmCloudSaveLoadedFor='',mmCloudSavePending=false;
-function mmRefreshCurrentGoogleUser(){try{const u=(fbAuth&&fbAuth.currentUser)||fbUser;if(u&&!u.isAnonymous){fbUser=u;AUTH_UID=u.uid;mmMarkGoogleTrusted();return true}}catch(e){}return false}
-function mmIsGoogleLoggedIn(){try{return mmRefreshCurrentGoogleUser()||!!(fbUser&&AUTH_UID&&!fbUser.isAnonymous)}catch(e){return false}}
-function mmCanUseMultiplayer(){try{return mmIsGoogleLoggedIn()||mmTrustLocalLogin()}catch(e){return false}}
-function mmAuthLabel(){return mmCanUseMultiplayer()?'Conta liberada':'Visitante'}
+function mmIsGoogleLoggedIn(){try{return !!(fbUser&&AUTH_UID&&!fbUser.isAnonymous)}catch(e){return false}}
+function mmAuthLabel(){return mmIsGoogleLoggedIn()?'Conta Google conectada':'Visitante'}
 function mmPublicSaveCopy(){
  const base=defaultSave();
  const allowed=['coins','hiScore','lang','bgm','sfx','shake','blood','owned','equipped','unlockedStages','completedStages','stageStars','selectedStage','currentDimension','unlockedDimension','dimensionClears','missions','missionProgress','lastMissionReset','version'];
@@ -482,41 +446,43 @@ function mmLoadCloudSave(force=false){
 }
 function mmOnAuthChanged(u){
  try{
-  if(u&&!u.isAnonymous){mmMarkGoogleTrusted();SOCIAL.uid=u.uid;mmLoadCloudSave(true)}
+  if(u&&!u.isAnonymous){localStorage.setItem('mm_google_login','1');SOCIAL.uid=u.uid;mmLoadCloudSave(true)}
   else{mmCloudSaveReady=false;mmCloudSaveLoadedFor=''}
  }catch(e){}
 }
 function mmSignInGoogle(){
  try{
-  window.mmGoogleLoginBusy=false;
-  if(mmIsGoogleLoggedIn()){mmRenderAuthBox();return}
+  if(window.mmGoogleLoginBusy)return;
+  window.mmGoogleLoginBusy=true;
+  setTimeout(()=>{window.mmGoogleLoginBusy=false},8000);
+
   if(!fbAuth||!firebase.auth||!firebase.auth.GoogleAuthProvider){
+    window.mmGoogleLoginBusy=false;
     alert('Login Google indisponível.');
     return;
   }
-  if(window.mmGoogleLoginBusy)return;
-  window.mmGoogleLoginBusy=true;
-  const unlockTimer=setTimeout(()=>{window.mmGoogleLoginBusy=false;try{mmRenderAuthBox()}catch(e){}},10000);
 
   const provider=new firebase.auth.GoogleAuthProvider();
   provider.setCustomParameters({prompt:'select_account'});
-  const isStandalone=(()=>{try{return window.matchMedia('(display-mode: standalone)').matches||document.referrer.indexOf('android-app://')===0}catch(e){return false}})();
-  const isMobile=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent||'');
 
-  const done=()=>{clearTimeout(unlockTimer);window.mmGoogleLoginBusy=false;mmMarkGoogleTrusted();mmRenderAuthBox();mmLoadCloudSave(true)};
-  const fail=(err)=>{clearTimeout(unlockTimer);window.mmGoogleLoginBusy=false;console.warn('Google login failed',err);try{mmRenderAuthBox(true)}catch(e){} };
-
-  if(isStandalone||isMobile){
-    fbAuth.signInWithRedirect(provider).catch(fail);
-    setTimeout(()=>{window.mmGoogleLoginBusy=false},2500);
-    return;
-  }
-
-  fbAuth.signInWithPopup(provider).then(done).catch(err=>{
-    console.warn('Google popup failed, using redirect',err);
+  fbAuth.signInWithPopup(provider)
+  .then(()=>{
     window.mmGoogleLoginBusy=false;
-    try{fbAuth.signInWithRedirect(provider).catch(fail)}catch(e){fail(e)}
+    mmRenderAuthBox();
+    mmLoadCloudSave(true);
+  })
+  .catch(err=>{
+    console.warn('Google popup failed, using redirect',err);
+
+    try{
+      window.mmGoogleLoginBusy=false;
+      fbAuth.signInWithRedirect(provider);
+    }catch(e){
+      window.mmGoogleLoginBusy=false;
+      alert('Não foi possível abrir o login Google agora.');
+    }
   });
+
  }catch(e){
    window.mmGoogleLoginBusy=false;
    alert('Não foi possível abrir o login Google agora.');
@@ -524,23 +490,13 @@ function mmSignInGoogle(){
 }
 function mmSignOutGoogle(){
  try{if(MP&&MP.on)mpLeaveRoom()}catch(e){}
- try{if(fbAuth)fbAuth.signOut().finally(()=>{mmClearGoogleTrusted();fbStartAnonymous(true);setTimeout(mmRenderAuthBox,300)})}catch(e){}
+ try{if(fbAuth)fbAuth.signOut().finally(()=>{localStorage.removeItem('mm_google_login');fbStartAnonymous();setTimeout(mmRenderAuthBox,300)})}catch(e){}
 }
 function mmRequireGoogleForMultiplayer(){
- window.mmGoogleLoginBusy=false;
  if(mmIsGoogleLoggedIn())return true;
- try{if(fbAuth&&fbAuth.currentUser&&!fbAuth.currentUser.isAnonymous){fbHandleAuthUser(fbAuth.currentUser);return true}}catch(e){}
- // Se o jogador já logou uma vez neste aparelho, não fica pedindo login toda vez.
- // Firebase Auth normalmente restaura o Google; se não restaurar, usa sessão anônima só para passar pelas regras.
- if(mmTrustLocalLogin()){
-   try{if(fbAuth&&!fbUser)fbStartAnonymous(true)}catch(e){}
-   if(fbUser||!fbAuth)return true;
-   mpStatus('Restaurando acesso salvo... tente novamente em instantes.');
-   setTimeout(()=>{try{mmRenderAuthBox(false)}catch(e){}},250);
-   return false;
- }
+ try{showScreen('menu',true)}catch(e){}
+ mmRenderAuthBox(true);
  mpStatus('Faça login com Google para jogar multiplayer e salvar seu progresso online.');
- try{mmRenderAuthBox(true)}catch(e){}
  return false;
 }
 function mmEnsureAuthBox(){
@@ -556,21 +512,15 @@ function mmEnsureAuthBox(){
 function mmPositionAuthBox(){
  try{
   const box=document.getElementById('mmAuthBox')||mmEnsureAuthBox();
-  function visibleBtn(id){
-    const el=document.getElementById(id);if(!el)return null;
-    const r=el.getBoundingClientRect();
-    const cs=getComputedStyle(el);
-    return (r.width>8&&r.height>8&&cs.display!=='none'&&cs.visibility!=='hidden')?el:null;
-  }
-  const btn=visibleBtn('btnCreateRoom')||visibleBtn('btnMultiplayer')||visibleBtn('btnJoinRoom');
+  const btn=document.getElementById('btnMultiplayer')||document.getElementById('btnCreateRoom');
   if(!box||!btn)return;
   const r=btn.getBoundingClientRect();
   const bw=box.offsetWidth||150,bh=box.offsetHeight||74,gap=10;
   let left=r.left-bw-gap;
   let top=r.top+(r.height-bh)/2;
-  if(left<6){left=Math.min(window.innerWidth-bw-6,Math.max(6,r.left));top=Math.max(6,r.top-bh-gap)}
+  if(left<6){left=r.left;top=Math.max(6,r.top-bh-gap)}
   if(top<6)top=6;
-  if(top+bh>window.innerHeight-6)top=Math.max(6,window.innerHeight-bh-6);
+  if(top+bh>window.innerHeight-6)top=window.innerHeight-bh-6;
   box.style.left=Math.round(left)+'px';
   box.style.top=Math.round(top)+'px';
  }catch(e){}
@@ -578,15 +528,13 @@ function mmPositionAuthBox(){
 function mmRenderAuthBox(focus=false){
  try{
   const box=mmEnsureAuthBox();
-  const logged=mmCanUseMultiplayer();
+  const logged=mmIsGoogleLoggedIn();
   const btn=document.getElementById('mmGoogleLoginBtn');
-  if(btn){btn.textContent=logged?'Conta liberada':'Entrar com Google';btn.onclick=logged?function(ev){ev.preventDefault();ev.stopPropagation();box.classList.remove('open')}:function(ev){ev.preventDefault();ev.stopPropagation();mmSignInGoogle()};}
+  if(btn){btn.textContent=logged?'Conta conectada':'Entrar com Google';btn.onclick=logged?function(ev){ev.preventDefault();ev.stopPropagation();box.classList.remove('open')}:function(ev){ev.preventDefault();ev.stopPropagation();mmSignInGoogle()};}
   if(logged){box.classList.remove('open');return}
   if(focus){mmPositionAuthBox();box.classList.add('open');setTimeout(mmPositionAuthBox,30)}
  }catch(e){}
 }
-
-try{window.addEventListener('resize',()=>{try{if(document.getElementById('mmAuthBox')?.classList.contains('open'))mmPositionAuthBox()}catch(e){}});window.addEventListener('orientationchange',()=>setTimeout(()=>{try{if(document.getElementById('mmAuthBox')?.classList.contains('open'))mmPositionAuthBox()}catch(e){}},220));}catch(e){}
 
 const MP={on:false,room:'',playerId:'',role:'',nick:'',roomRef:null,playerRef:null,lobbyRef:null,players:{},enemyStates:{},shotStates:{},hazardStates:{},lastSend:0,lastWorldSend:0,lastEnemySend:0,lastShotSend:0,lastHazardSend:0,lastWorldMetaSend:0,lastPlayerSync:null,lastEnemyHash:'',lastShotHash:'',lastHazardHash:'',lastWorldHash:'',eventSeq:0,worldReady:false,lastRestart:0,lastStageSeen:null,knownPlayers:{},joinToast:'',joinToastT:0,lastGoalReq:0,restarting:false,remoteSmooth:{},remoteFx:[],lastPlayerEventKey:'',remoteKillCredit:null,roomCreatedAt:0,started:false};
 function mpId(){let id=localStorage.getItem('cc2_player_id');if(!id){id='p_'+Math.random().toString(36).slice(2,10);localStorage.setItem('cc2_player_id',id)}return id}
@@ -1414,26 +1362,6 @@ document.getElementById('btnPlay').addEventListener('click',()=>{
   startGame(save.selectedStage);
 });
 document.getElementById('btnMap').addEventListener('click',()=>{buildMap();showScreen('map')});
-document.getElementById('btnDownloadGame')?.addEventListener('click',()=>{
- const APK_URL='https://github.com/mmotoucabr-byte/dowload/releases/download/MundoMagico/MundoMagico_v0.1_Android.apk';
- const ok=confirm('APK oficial do Mundo Mágico por ToucaBR. Arquivo seguro hospedado no GitHub. Deseja baixar agora?');
- if(!ok)return;
- try{
-   const a=document.createElement('a');
-   a.href=APK_URL;
-   a.download='MundoMagico_v0.1_Android.apk';
-   a.target='_blank';
-   a.rel='noopener noreferrer';
-   a.style.position='fixed';
-   a.style.left='-9999px';
-   a.style.top='-9999px';
-   document.body.appendChild(a);
-   a.click();
-   setTimeout(()=>{try{a.remove()}catch(e){}},1200);
- }catch(e){
-   try{window.open(APK_URL,'_blank','noopener')}catch(_){window.location.assign(APK_URL)}
- }
-});
 document.getElementById('btnShop').addEventListener('click',()=>{buildShop('skins');showScreen('shop')});
 document.getElementById('btnMissions').addEventListener('click',()=>{buildMissions('daily');showScreen('missions')});
 document.getElementById('btnInv').addEventListener('click',()=>{buildInv();showScreen('inv')});
