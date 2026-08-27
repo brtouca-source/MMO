@@ -1793,3 +1793,41 @@ canvas[data-home-squad="1"]{
 .home-squad-member{pointer-events:none}
 .home-squad-member .squad-kick-btn{pointer-events:auto}
 @media(max-width:760px),(max-height:520px){.squad-kick-btn{font-size:8px;padding:3px 7px;margin-bottom:2px}}
+
+/* Portais isolados: Editor Terminated e Dama-Invencivel. */
+#menuScreen .hm-side-nav-compact .hm-portal-btn{
+  min-height:48px!important;
+  padding:5px 4px!important;
+  border-radius:15px!important;
+  text-decoration:none!important;
+  flex:0 0 auto!important;
+  animation:hmPortalFloat 3.2s ease-in-out infinite;
+}
+#menuScreen .hm-side-nav-compact .hm-portal-btn span{
+  font-size:9px!important;
+  letter-spacing:.15px!important;
+}
+#menuScreen .hm-btn-terminated{
+  color:#f4fdff!important;
+  border-color:rgba(150,226,238,.42)!important;
+  background:linear-gradient(180deg,#65becb 0%,#397f91 58%,#255463 100%)!important;
+  box-shadow:0 5px 0 #173943,0 10px 20px rgba(36,117,133,.28),inset 0 1px 0 rgba(255,255,255,.34)!important;
+}
+#menuScreen .hm-btn-dama{
+  color:#382006!important;
+  border-color:rgba(106,66,17,.4)!important;
+  background:linear-gradient(180deg,#ffe78a 0%,#e7b840 57%,#b9781e 100%)!important;
+  box-shadow:0 5px 0 #754513,0 10px 20px rgba(207,145,38,.28),inset 0 1px 0 rgba(255,255,255,.5)!important;
+  animation-delay:.18s;
+}
+#menuScreen .hm-portal-btn:active{animation:none;transform:translateY(3px) scale(.98)!important}
+@keyframes hmPortalFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
+@media(max-width:900px),(max-height:560px){
+  #menuScreen .hm-side-nav-compact .hm-portal-btn{min-height:39px!important;font-size:13px!important;border-radius:12px!important}
+  #menuScreen .hm-side-nav-compact .hm-portal-btn span{font-size:7px!important}
+}
+@media(max-width:680px),(max-height:430px){
+  #menuScreen .hm-side-nav-compact{gap:5px!important}
+  #menuScreen .hm-side-nav-compact .hm-portal-btn{min-height:34px!important;font-size:11px!important;padding:3px!important}
+  #menuScreen .hm-side-nav-compact .hm-portal-btn span{font-size:6.2px!important}
+}

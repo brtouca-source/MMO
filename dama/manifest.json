@@ -1,0 +1,12 @@
+{
+  "id": "./",
+  "name": "Dama Invencível",
+  "short_name": "Dama",
+  "description": "Dama Invencível criada por @ToucaBr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#c9b99f",
+  "theme_color": "#c9b99f"
+}
